@@ -116,3 +116,34 @@ export async function PATCH(request: Request, { params }: PostRouteContext) {
     );
   }
 }
+
+export async function DELETE(_request: Request, { params }: PostRouteContext) {
+  const session = await getServerSession(authOptions);
+  if (!session?.user?.id) {
+    return NextResponse.json(
+      { error: "Authentication required." },
+      { status: 401 }
+    );
+  }
+
+  try {
+    const result = await prisma.post.deleteMany({
+      where: {
+        slug: params.slug,
+        authorId: session.user.id,
+      },
+    });
+
+    if (result.count === 0) {
+      return NextResponse.json({ error: "Post not found." }, { status: 404 });
+    }
+
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error("Post deletion failed:", error);
+    return NextResponse.json(
+      { error: "Unable to delete the post right now." },
+      { status: 500 }
+    );
+  }
+}
