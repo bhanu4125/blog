@@ -1,12 +1,20 @@
 "use client";
 
-import { useRef, useState, type KeyboardEvent } from "react";
+import { useEffect, useRef, useState, type KeyboardEvent } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import ReactMarkdown from "react-markdown";
 import rehypeHighlight from "rehype-highlight";
 import remarkGfm from "remark-gfm";
 import { MarkdownTextarea } from "@/components/editor/markdown-textarea";
 import { Input } from "@/components/ui/input";
+import { useToast } from "@/components/ui/toast-provider";
+
+const DRAFT_STORAGE_KEY = "blog-post-draft";
+
+type SavedDraft = {
+  title: string;
+  content: string;
+};
 
 type MarkdownAction =
   | "bold"
@@ -43,11 +51,72 @@ const toolbarActions: {
   { action: "code", label: "Code block", symbol: "</>" },
 ];
 
+function isSavedDraft(value: unknown): value is SavedDraft {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    "title" in value &&
+    typeof value.title === "string" &&
+    "content" in value &&
+    typeof value.content === "string"
+  );
+}
+
 export function MarkdownWorkspace() {
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
   const [view, setView] = useState<EditorView>("split");
+  const [draftReady, setDraftReady] = useState(false);
+  const [saveStatus, setSaveStatus] = useState<
+    "ready" | "saving" | "saved" | "error"
+  >("ready");
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const { addToast } = useToast();
+
+  useEffect(() => {
+    try {
+      const saved = window.localStorage.getItem(DRAFT_STORAGE_KEY);
+      if (saved) {
+        const draft: unknown = JSON.parse(saved);
+        if (!isSavedDraft(draft)) {
+          throw new Error("The saved draft has an invalid format.");
+        }
+        setTitle(draft.title);
+        setContent(draft.content);
+        setSaveStatus("saved");
+      }
+    } catch (error) {
+      console.error("Could not restore the saved draft.", error);
+      addToast("Could not restore the saved draft from this device.", "error");
+    } finally {
+      setDraftReady(true);
+    }
+  }, [addToast]);
+
+  useEffect(() => {
+    if (!draftReady) return;
+
+    setSaveStatus("saving");
+    const timeout = window.setTimeout(() => {
+      try {
+        if (title.trim() || content.trim()) {
+          window.localStorage.setItem(
+            DRAFT_STORAGE_KEY,
+            JSON.stringify({ title, content })
+          );
+        } else {
+          window.localStorage.removeItem(DRAFT_STORAGE_KEY);
+        }
+        setSaveStatus("saved");
+      } catch (error) {
+        console.error("Could not save the post draft.", error);
+        setSaveStatus("error");
+        addToast("Could not save your draft on this device.", "error");
+      }
+    }, 500);
+
+    return () => window.clearTimeout(timeout);
+  }, [addToast, content, draftReady, title]);
 
   function formatContent(action: MarkdownAction) {
     const textarea = textareaRef.current;
@@ -229,6 +298,15 @@ export function MarkdownWorkspace() {
               <p id="markdown-help" className="mt-2 text-xs text-muted">
                 Markdown is supported. Use Ctrl/Cmd+B for bold, Ctrl/Cmd+I for
                 italic, or Ctrl/Cmd+K for a link.
+              </p>
+              <p aria-live="polite" className="mt-1 text-xs text-muted">
+                {saveStatus === "saving"
+                  ? "Saving draft…"
+                  : saveStatus === "saved"
+                    ? "Draft saved on this device."
+                    : saveStatus === "error"
+                      ? "Draft could not be saved."
+                      : "Draft autosave ready."}
               </p>
             </motion.section>
           )}
