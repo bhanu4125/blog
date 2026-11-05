@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import localFont from "next/font/local";
 import { Navbar } from "@/components/layout/navbar";
 import { Footer } from "@/components/layout/footer";
+import { PageTransition } from "@/components/layout/page-transition";
 import { siteConfig } from "@/config/site";
 import "./globals.css";
 
@@ -34,7 +35,7 @@ export default function RootLayout({
       >
         <Navbar />
         <div className="flex min-h-[calc(100vh-4rem)] flex-1 flex-col">
-          {children}
+          <PageTransition>{children}</PageTransition>
           <Footer />
         </div>
       </body>
