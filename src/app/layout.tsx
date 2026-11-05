@@ -3,6 +3,7 @@ import localFont from "next/font/local";
 import { Navbar } from "@/components/layout/navbar";
 import { Footer } from "@/components/layout/footer";
 import { PageTransition } from "@/components/layout/page-transition";
+import { SessionProvider } from "@/components/layout/session-provider";
 import { ThemeProvider } from "@/components/layout/theme-provider";
 import { siteConfig } from "@/config/site";
 import "./globals.css";
@@ -35,11 +36,13 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} flex min-h-screen flex-col antialiased`}
       >
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
-          <Navbar />
-          <div className="flex min-h-[calc(100vh-4rem)] flex-1 flex-col">
-            <PageTransition>{children}</PageTransition>
-            <Footer />
-          </div>
+          <SessionProvider>
+            <Navbar />
+            <div className="flex min-h-[calc(100vh-4rem)] flex-1 flex-col">
+              <PageTransition>{children}</PageTransition>
+              <Footer />
+            </div>
+          </SessionProvider>
         </ThemeProvider>
       </body>
     </html>
