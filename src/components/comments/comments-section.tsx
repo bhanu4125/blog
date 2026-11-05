@@ -20,6 +20,7 @@ export function CommentsSection({ postSlug }: CommentsSectionProps) {
   );
   const [errorMessage, setErrorMessage] = useState("");
   const [reloadCount, setReloadCount] = useState(0);
+  const [replyTarget, setReplyTarget] = useState<PostComment | null>(null);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -50,7 +51,24 @@ export function CommentsSection({ postSlug }: CommentsSectionProps) {
           const localComments = current.filter(
             (comment) => !serverIds.has(comment.id)
           );
-          return [...loadedComments, ...localComments];
+          const mergedComments = loadedComments.map((loaded) => {
+            const existing = current.find(
+              (comment) => comment.id === loaded.id
+            );
+            if (!existing) return loaded;
+
+            const loadedReplyIds = new Set(
+              (loaded.replies ?? []).map((reply) => reply.id)
+            );
+            const localReplies = (existing.replies ?? []).filter(
+              (reply) => !loadedReplyIds.has(reply.id)
+            );
+            return {
+              ...loaded,
+              replies: [...(loaded.replies ?? []), ...localReplies],
+            };
+          });
+          return [...mergedComments, ...localComments];
         });
         setLoadState("loaded");
       } catch (error) {
@@ -70,19 +88,44 @@ export function CommentsSection({ postSlug }: CommentsSectionProps) {
   }, [postSlug, reloadCount]);
 
   const addOptimisticComment = useCallback((comment: PostComment) => {
-    setComments((current) => [...current, comment]);
+    setComments((current) => {
+      if (comment.parentId) {
+        return current.map((root) =>
+          root.id === comment.parentId
+            ? { ...root, replies: [...(root.replies ?? []), comment] }
+            : root
+        );
+      }
+
+      return [...current, { ...comment, replies: [] }];
+    });
   }, []);
 
   const confirmComment = useCallback(
     (temporaryId: string, comment: PostComment) => {
       setComments((current) => {
+        if (comment.parentId) {
+          return current.map((root) => {
+            if (root.id !== comment.parentId) return root;
+            const withoutTemporary = (root.replies ?? []).filter(
+              (existing) => existing.id !== temporaryId
+            );
+            if (
+              withoutTemporary.some((existing) => existing.id === comment.id)
+            ) {
+              return { ...root, replies: withoutTemporary };
+            }
+            return { ...root, replies: [...withoutTemporary, comment] };
+          });
+        }
+
         const withoutTemporary = current.filter(
           (existing) => existing.id !== temporaryId
         );
         if (withoutTemporary.some((existing) => existing.id === comment.id)) {
           return withoutTemporary;
         }
-        return [...withoutTemporary, comment];
+        return [...withoutTemporary, { ...comment, replies: [] }];
       });
     },
     []
@@ -90,7 +133,12 @@ export function CommentsSection({ postSlug }: CommentsSectionProps) {
 
   const removeFailedComment = useCallback((temporaryId: string) => {
     setComments((current) =>
-      current.filter((comment) => comment.id !== temporaryId)
+      current
+        .filter((comment) => comment.id !== temporaryId)
+        .map((comment) => ({
+          ...comment,
+          replies: comment.replies?.filter((reply) => reply.id !== temporaryId),
+        }))
     );
   }, []);
 
@@ -98,6 +146,13 @@ export function CommentsSection({ postSlug }: CommentsSectionProps) {
     <>
       <CommentForm
         postSlug={postSlug}
+        parentComment={
+          replyTarget
+            ? { id: replyTarget.id, name: replyTarget.author.name }
+            : null
+        }
+        onCancelReply={() => setReplyTarget(null)}
+        onReplyPosted={() => setReplyTarget(null)}
         onOptimisticComment={addOptimisticComment}
         onCommentConfirmed={confirmComment}
         onCommentFailed={removeFailedComment}
@@ -109,6 +164,7 @@ export function CommentsSection({ postSlug }: CommentsSectionProps) {
           loadState={loadState}
           errorMessage={errorMessage}
           onRetry={() => setReloadCount((count) => count + 1)}
+          onReply={setReplyTarget}
         />
       </div>
     </>

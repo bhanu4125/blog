@@ -26,15 +26,29 @@ export async function GET(_request: Request, { params }: CommentsRouteContext) {
     }
 
     const comments = await prisma.comment.findMany({
-      where: { postId: post.id },
+      where: { postId: post.id, parentId: null },
       orderBy: [{ createdAt: "asc" }, { id: "asc" }],
       select: {
         id: true,
         content: true,
+        parentId: true,
         createdAt: true,
         updatedAt: true,
         author: {
           select: { id: true, name: true, imageUrl: true },
+        },
+        replies: {
+          orderBy: [{ createdAt: "asc" }, { id: "asc" }],
+          select: {
+            id: true,
+            content: true,
+            parentId: true,
+            createdAt: true,
+            updatedAt: true,
+            author: {
+              select: { id: true, name: true, imageUrl: true },
+            },
+          },
         },
       },
     });
@@ -92,15 +106,32 @@ export async function POST(request: Request, { params }: CommentsRouteContext) {
       return NextResponse.json({ error: "Post not found." }, { status: 404 });
     }
 
+    const parentId = parsed.data.parentId ?? null;
+    if (parentId) {
+      const parent = await prisma.comment.findFirst({
+        where: { id: parentId, postId: post.id, parentId: null },
+        select: { id: true },
+      });
+
+      if (!parent) {
+        return NextResponse.json(
+          { error: "Replies must target a top-level comment on this post." },
+          { status: 400 }
+        );
+      }
+    }
+
     const comment = await prisma.comment.create({
       data: {
         content: parsed.data.content,
         postId: post.id,
         authorId: session.user.id,
+        parentId,
       },
       select: {
         id: true,
         content: true,
+        parentId: true,
         createdAt: true,
         updatedAt: true,
         author: {

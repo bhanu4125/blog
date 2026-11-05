@@ -7,9 +7,11 @@ export type CommentAuthor = {
 export type PostComment = {
   id: string;
   content: string;
+  parentId: string | null;
   createdAt: string;
   author: CommentAuthor;
   pending?: boolean;
+  replies?: PostComment[];
 };
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -22,12 +24,18 @@ export function isPostComment(value: unknown): value is PostComment {
   return (
     typeof value.id === "string" &&
     typeof value.content === "string" &&
+    (typeof value.parentId === "string" || value.parentId === null) &&
     typeof value.createdAt === "string" &&
     Number.isFinite(Date.parse(value.createdAt)) &&
     typeof value.author.id === "string" &&
     typeof value.author.name === "string" &&
     (typeof value.author.imageUrl === "string" ||
-      value.author.imageUrl === null)
+      value.author.imageUrl === null) &&
+    (!("replies" in value) ||
+      (Array.isArray(value.replies) &&
+        value.replies.every(
+          (reply) => isPostComment(reply) && !("replies" in reply)
+        )))
   );
 }
 

@@ -14,6 +14,9 @@ import {
 
 type CommentFormProps = {
   postSlug: string;
+  parentComment: { id: string; name: string } | null;
+  onCancelReply: () => void;
+  onReplyPosted: () => void;
   onOptimisticComment: (comment: PostComment) => void;
   onCommentConfirmed: (temporaryId: string, comment: PostComment) => void;
   onCommentFailed: (temporaryId: string) => void;
@@ -23,6 +26,9 @@ const COMMENT_MAX_LENGTH = 2_000;
 
 export function CommentForm({
   postSlug,
+  parentComment,
+  onCancelReply,
+  onReplyPosted,
   onOptimisticComment,
   onCommentConfirmed,
   onCommentFailed,
@@ -45,6 +51,7 @@ export function CommentForm({
     onOptimisticComment({
       id: temporaryId,
       content: trimmedContent,
+      parentId: parentComment?.id ?? null,
       createdAt: new Date().toISOString(),
       author: {
         id: session?.user.id ?? "",
@@ -60,7 +67,10 @@ export function CommentForm({
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ content: trimmedContent }),
+          body: JSON.stringify({
+            content: trimmedContent,
+            parentId: parentComment?.id ?? null,
+          }),
         }
       );
       const result: unknown = await response.json();
@@ -77,6 +87,7 @@ export function CommentForm({
 
       onCommentConfirmed(temporaryId, readCreatedComment(result));
       setContent("");
+      onReplyPosted();
       addToast("Your comment was posted.", "success");
     } catch (error) {
       onCommentFailed(temporaryId);
@@ -111,12 +122,23 @@ export function CommentForm({
 
   return (
     <form className="space-y-3" onSubmit={handleSubmit}>
-      <label
-        htmlFor="comment-content"
-        className="block text-sm font-medium text-foreground"
-      >
-        Your comment
-      </label>
+      <div className="flex items-center justify-between gap-3">
+        <label
+          htmlFor="comment-content"
+          className="block text-sm font-medium text-foreground"
+        >
+          {parentComment ? `Replying to ${parentComment.name}` : "Your comment"}
+        </label>
+        {parentComment && (
+          <button
+            type="button"
+            onClick={onCancelReply}
+            className="rounded-md text-xs font-medium text-muted underline-offset-4 hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-600"
+          >
+            Cancel reply
+          </button>
+        )}
+      </div>
       <Textarea
         id="comment-content"
         name="content"
@@ -133,7 +155,11 @@ export function CommentForm({
           {content.length}/{COMMENT_MAX_LENGTH} characters
         </p>
         <Button type="submit" disabled={isSubmitting || !content.trim()}>
-          {isSubmitting ? "Posting…" : "Post comment"}
+          {isSubmitting
+            ? "Posting…"
+            : parentComment
+              ? "Post reply"
+              : "Post comment"}
         </Button>
       </div>
     </form>
