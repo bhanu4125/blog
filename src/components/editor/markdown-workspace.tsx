@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState, type KeyboardEvent } from "react";
+import { AnimatePresence, motion } from "framer-motion";
 import ReactMarkdown from "react-markdown";
 import rehypeHighlight from "rehype-highlight";
 import remarkGfm from "remark-gfm";
@@ -16,6 +17,14 @@ type MarkdownAction =
   | "numbered"
   | "quote"
   | "code";
+
+type EditorView = "write" | "preview" | "split";
+
+const editorViews: { value: EditorView; label: string }[] = [
+  { value: "write", label: "Write" },
+  { value: "preview", label: "Preview" },
+  { value: "split", label: "Split" },
+];
 
 const toolbarActions: {
   action: MarkdownAction;
@@ -35,6 +44,7 @@ const toolbarActions: {
 export function MarkdownWorkspace() {
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
+  const [view, setView] = useState<EditorView>("split");
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   function formatContent(action: MarkdownAction) {
@@ -115,95 +125,138 @@ export function MarkdownWorkspace() {
   }
 
   return (
-    <div className="grid gap-6 lg:grid-cols-2">
-      <section
-        aria-labelledby="writing-heading"
-        className="min-w-0 rounded-2xl border border-border bg-background p-5 shadow-sm sm:p-7"
+    <div>
+      <div
+        aria-label="Editor view"
+        className="mb-6 inline-flex rounded-xl border border-border bg-surface p-1"
+        role="group"
       >
-        <h2 id="writing-heading" className="sr-only">
-          Write your post
-        </h2>
-        <label
-          htmlFor="post-title"
-          className="mb-2 block text-sm font-medium text-foreground"
-        >
-          Title
-        </label>
-        <Input
-          id="post-title"
-          name="title"
-          value={title}
-          onChange={(event) => setTitle(event.currentTarget.value)}
-          placeholder="Give your story a title"
-          maxLength={120}
-        />
-        <label
-          htmlFor="post-content"
-          className="mb-2 mt-6 block text-sm font-medium text-foreground"
-        >
-          Story
-        </label>
-        <div
-          aria-label="Markdown formatting"
-          className="mb-3 flex flex-wrap gap-2"
-          role="group"
-        >
-          {toolbarActions.map(({ action, label, symbol }) => (
-            <button
-              key={action}
-              type="button"
-              aria-label={label}
-              title={label}
-              onMouseDown={(event) => event.preventDefault()}
-              onClick={() => formatContent(action)}
-              className="min-h-10 rounded-lg border border-border bg-background px-3 text-sm font-medium text-foreground transition-colors hover:bg-surface focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-600"
-            >
-              {symbol}
-            </button>
-          ))}
-        </div>
-        <MarkdownTextarea
-          ref={textareaRef}
-          id="post-content"
-          name="content"
-          value={content}
-          onChange={(event) => setContent(event.currentTarget.value)}
-          onKeyDown={handleEditorKeyDown}
-          placeholder="Start writing your story…"
-          aria-describedby="markdown-help"
-        />
-        <p id="markdown-help" className="mt-2 text-xs text-muted">
-          Markdown is supported. Use Ctrl/Cmd+B for bold, Ctrl/Cmd+I for italic,
-          or Ctrl/Cmd+K for a link.
-        </p>
-      </section>
+        {editorViews.map(({ value, label }) => (
+          <button
+            key={value}
+            type="button"
+            aria-pressed={view === value}
+            onClick={() => setView(value)}
+            className="relative min-h-10 min-w-20 rounded-lg px-4 text-sm font-medium text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-600"
+          >
+            {view === value && (
+              <motion.span
+                aria-hidden="true"
+                className="absolute inset-0 rounded-lg bg-background shadow-sm"
+                layoutId="editor-view-indicator"
+                transition={{ type: "spring", stiffness: 400, damping: 30 }}
+              />
+            )}
+            <span className="relative z-10">{label}</span>
+          </button>
+        ))}
+      </div>
 
-      <section
-        aria-labelledby="preview-heading"
-        className="min-h-[24rem] min-w-0 rounded-2xl border border-border bg-surface p-5 sm:p-7"
-      >
-        <h2
-          id="preview-heading"
-          className="text-xs font-semibold uppercase tracking-[0.16em] text-muted"
-        >
-          Preview
-        </h2>
-        <article className="markdown-content mt-8 break-words">
-          <h1>{title || "Your story title"}</h1>
-          {content ? (
-            <ReactMarkdown
-              remarkPlugins={[remarkGfm]}
-              rehypePlugins={[rehypeHighlight]}
+      <div className={`grid gap-6 ${view === "split" ? "lg:grid-cols-2" : ""}`}>
+        <AnimatePresence initial={false} mode="sync">
+          {view !== "preview" && (
+            <motion.section
+              key="writing"
+              aria-labelledby="writing-heading"
+              className="min-w-0 rounded-2xl border border-border bg-background p-5 shadow-sm sm:p-7"
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 8 }}
+              transition={{ duration: 0.18 }}
             >
-              {content}
-            </ReactMarkdown>
-          ) : (
-            <p className="text-muted">
-              Your formatted story will appear here as you write.
-            </p>
+              <h2 id="writing-heading" className="sr-only">
+                Write your post
+              </h2>
+              <label
+                htmlFor="post-title"
+                className="mb-2 block text-sm font-medium text-foreground"
+              >
+                Title
+              </label>
+              <Input
+                id="post-title"
+                name="title"
+                value={title}
+                onChange={(event) => setTitle(event.currentTarget.value)}
+                placeholder="Give your story a title"
+                maxLength={120}
+              />
+              <label
+                htmlFor="post-content"
+                className="mb-2 mt-6 block text-sm font-medium text-foreground"
+              >
+                Story
+              </label>
+              <div
+                aria-label="Markdown formatting"
+                className="mb-3 flex flex-wrap gap-2"
+                role="group"
+              >
+                {toolbarActions.map(({ action, label, symbol }) => (
+                  <button
+                    key={action}
+                    type="button"
+                    aria-label={label}
+                    title={label}
+                    onMouseDown={(event) => event.preventDefault()}
+                    onClick={() => formatContent(action)}
+                    className="min-h-10 rounded-lg border border-border bg-background px-3 text-sm font-medium text-foreground transition-colors hover:bg-surface focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-600"
+                  >
+                    {symbol}
+                  </button>
+                ))}
+              </div>
+              <MarkdownTextarea
+                ref={textareaRef}
+                id="post-content"
+                name="content"
+                value={content}
+                onChange={(event) => setContent(event.currentTarget.value)}
+                onKeyDown={handleEditorKeyDown}
+                placeholder="Start writing your story…"
+                aria-describedby="markdown-help"
+              />
+              <p id="markdown-help" className="mt-2 text-xs text-muted">
+                Markdown is supported. Use Ctrl/Cmd+B for bold, Ctrl/Cmd+I for
+                italic, or Ctrl/Cmd+K for a link.
+              </p>
+            </motion.section>
           )}
-        </article>
-      </section>
+          {view !== "write" && (
+            <motion.section
+              key="preview"
+              aria-labelledby="preview-heading"
+              className="min-h-[24rem] min-w-0 rounded-2xl border border-border bg-surface p-5 sm:p-7"
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 8 }}
+              transition={{ duration: 0.18 }}
+            >
+              <h2
+                id="preview-heading"
+                className="text-xs font-semibold uppercase tracking-[0.16em] text-muted"
+              >
+                Preview
+              </h2>
+              <article className="markdown-content mt-8 break-words">
+                <h1>{title || "Your story title"}</h1>
+                {content ? (
+                  <ReactMarkdown
+                    remarkPlugins={[remarkGfm]}
+                    rehypePlugins={[rehypeHighlight]}
+                  >
+                    {content}
+                  </ReactMarkdown>
+                ) : (
+                  <p className="text-muted">
+                    Your formatted story will appear here as you write.
+                  </p>
+                )}
+              </article>
+            </motion.section>
+          )}
+        </AnimatePresence>
+      </div>
     </div>
   );
 }
