@@ -125,11 +125,27 @@ export function Navbar() {
                         </p>
                       )}
                     </div>
+                    <Link
+                      href="/dashboard"
+                      role="menuitem"
+                      onClick={() => setIsMenuOpen(false)}
+                      className="mt-1 flex w-full rounded-lg px-3 py-2 text-left text-sm text-foreground outline-none transition-colors hover:bg-surface focus-visible:ring-2 focus-visible:ring-brand-500"
+                    >
+                      Your stories
+                    </Link>
+                    <Link
+                      href="/profile/edit"
+                      role="menuitem"
+                      onClick={() => setIsMenuOpen(false)}
+                      className="flex w-full rounded-lg px-3 py-2 text-left text-sm text-foreground outline-none transition-colors hover:bg-surface focus-visible:ring-2 focus-visible:ring-brand-500"
+                    >
+                      Edit profile
+                    </Link>
                     <button
                       type="button"
                       role="menuitem"
                       onClick={handleSignOut}
-                      className="mt-1 flex w-full rounded-lg px-3 py-2 text-left text-sm text-foreground outline-none transition-colors hover:bg-surface focus-visible:ring-2 focus-visible:ring-brand-500"
+                      className="flex w-full rounded-lg px-3 py-2 text-left text-sm text-foreground outline-none transition-colors hover:bg-surface focus-visible:ring-2 focus-visible:ring-brand-500"
                     >
                       Sign out
                     </button>
