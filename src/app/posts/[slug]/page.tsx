@@ -7,6 +7,7 @@ import remarkGfm from "remark-gfm";
 import { CommentsSection } from "@/components/comments/comments-section";
 import { BookmarkButton } from "@/components/posts/bookmark-button";
 import { LikeButton } from "@/components/posts/like-button";
+import { ShareButton } from "@/components/posts/share-button";
 import { Avatar } from "@/components/profile/avatar";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
@@ -161,6 +162,7 @@ export default async function PostPage({ params }: PostPageProps) {
             postSlug={params.slug}
             initialIsBookmarked={Boolean(existingBookmark)}
           />
+          <ShareButton title={post.title} />
         </div>
       </article>
       <section
