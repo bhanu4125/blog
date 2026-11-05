@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import ReactMarkdown from "react-markdown";
 import rehypeHighlight from "rehype-highlight";
 import remarkGfm from "remark-gfm";
+import { CommentForm } from "@/components/comments/comment-form";
 import { prisma } from "@/lib/prisma";
 import { calculateReadingTime } from "@/lib/reading-time";
 
@@ -99,6 +100,19 @@ export default async function PostPage({ params }: PostPageProps) {
           </ReactMarkdown>
         </div>
       </article>
+      <section
+        id="comments"
+        aria-labelledby="comments-heading"
+        className="border-t border-border pt-8"
+      >
+        <h2
+          id="comments-heading"
+          className="mb-5 text-2xl font-bold tracking-tight text-foreground"
+        >
+          Join the conversation
+        </h2>
+        <CommentForm postSlug={params.slug} />
+      </section>
     </main>
   );
 }
