@@ -2,6 +2,7 @@ import { getServerSession } from "next-auth";
 import { NextResponse } from "next/server";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { findPostOwnedByUser } from "@/lib/post-authorization";
 import { updatePostSchema } from "@/lib/validations/post";
 
 type PostRouteContext = {
@@ -78,20 +79,13 @@ export async function PATCH(request: Request, { params }: PostRouteContext) {
   }
 
   try {
-    const existingPost = await prisma.post.findUnique({
-      where: { slug: params.slug },
-      select: { id: true, authorId: true },
-    });
+    const existingPost = await findPostOwnedByUser(
+      params.slug,
+      session.user.id
+    );
 
     if (!existingPost) {
       return NextResponse.json({ error: "Post not found." }, { status: 404 });
-    }
-
-    if (existingPost.authorId !== session.user.id) {
-      return NextResponse.json(
-        { error: "You can only update your own posts." },
-        { status: 403 }
-      );
     }
 
     const post = await prisma.post.update({
