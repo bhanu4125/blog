@@ -283,6 +283,7 @@ function CommentEntry({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
+            transition={{ duration: 0.2, ease: "easeOut" }}
             onMouseDown={(event) => {
               if (!isDeleting && event.target === event.currentTarget) {
                 setIsDeleteDialogOpen(false);
@@ -295,10 +296,14 @@ function CommentEntry({
               aria-labelledby={`delete-comment-title-${comment.id}`}
               aria-describedby={`delete-comment-description-${comment.id}`}
               className="w-full max-w-md rounded-2xl border border-border bg-background p-6 shadow-2xl"
-              initial={{ opacity: 0, y: 12, scale: 0.98 }}
+              initial={{ opacity: 0, y: 16, scale: 0.94 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: 8, scale: 0.98 }}
-              transition={{ duration: 0.18 }}
+              exit={{ opacity: 0, y: 8, scale: 0.97 }}
+              transition={{
+                type: "spring",
+                stiffness: 360,
+                damping: 28,
+              }}
             >
               <h2
                 id={`delete-comment-title-${comment.id}`}
