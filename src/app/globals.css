@@ -3,21 +3,61 @@
 @tailwind utilities;
 
 :root {
+  color-scheme: light;
   --background: #ffffff;
-  --foreground: #171717;
+  --foreground: #171b2b;
+  --surface: #f8fafc;
+  --muted: #64748b;
+  --border: #e2e8f0;
+  --accent: #4f46e5;
+}
+
+.dark {
+  color-scheme: dark;
+  --background: #0c1020;
+  --foreground: #f1f5f9;
+  --surface: #151b2e;
+  --muted: #94a3b8;
+  --border: #293247;
+  --accent: #a5b4fc;
 }
 
 @media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+  :root:not(.light) {
+    color-scheme: dark;
+    --background: #0c1020;
+    --foreground: #f1f5f9;
+    --surface: #151b2e;
+    --muted: #94a3b8;
+    --border: #293247;
+    --accent: #a5b4fc;
   }
 }
 
-body {
-  color: var(--foreground);
-  background: var(--background);
-  font-family: Arial, Helvetica, sans-serif;
+@layer base {
+  * {
+    border-color: var(--border);
+  }
+
+  html {
+    min-height: 100%;
+    scroll-behavior: smooth;
+  }
+
+  body {
+    min-height: 100vh;
+    margin: 0;
+    background-color: var(--background);
+    color: var(--foreground);
+    font-family: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  ::selection {
+    background-color: var(--accent);
+    color: var(--background);
+  }
 }
 
 @layer utilities {
