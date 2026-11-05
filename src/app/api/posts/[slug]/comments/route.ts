@@ -10,6 +10,45 @@ type CommentsRouteContext = {
   };
 };
 
+export async function GET(_request: Request, { params }: CommentsRouteContext) {
+  try {
+    const post = await prisma.post.findFirst({
+      where: {
+        slug: params.slug,
+        status: "published",
+        publishedAt: { not: null },
+      },
+      select: { id: true },
+    });
+
+    if (!post) {
+      return NextResponse.json({ error: "Post not found." }, { status: 404 });
+    }
+
+    const comments = await prisma.comment.findMany({
+      where: { postId: post.id },
+      orderBy: [{ createdAt: "asc" }, { id: "asc" }],
+      select: {
+        id: true,
+        content: true,
+        createdAt: true,
+        updatedAt: true,
+        author: {
+          select: { id: true, name: true, imageUrl: true },
+        },
+      },
+    });
+
+    return NextResponse.json({ comments });
+  } catch (error) {
+    console.error("Comment listing failed:", error);
+    return NextResponse.json(
+      { error: "Unable to load comments right now." },
+      { status: 500 }
+    );
+  }
+}
+
 export async function POST(request: Request, { params }: CommentsRouteContext) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) {
