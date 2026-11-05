@@ -1,14 +1,15 @@
-import type { TextareaHTMLAttributes } from "react";
+import { forwardRef, type TextareaHTMLAttributes } from "react";
 import { Textarea } from "@/components/ui/input";
 
 type MarkdownTextareaProps = TextareaHTMLAttributes<HTMLTextAreaElement>;
 
-export function MarkdownTextarea({
-  className = "",
-  ...props
-}: MarkdownTextareaProps) {
+export const MarkdownTextarea = forwardRef<
+  HTMLTextAreaElement,
+  MarkdownTextareaProps
+>(function MarkdownTextarea({ className = "", ...props }, ref) {
   return (
     <Textarea
+      ref={ref}
       rows={20}
       spellCheck={false}
       autoCapitalize="sentences"
@@ -16,4 +17,4 @@ export function MarkdownTextarea({
       {...props}
     />
   );
-}
+});
