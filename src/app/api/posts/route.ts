@@ -102,7 +102,7 @@ export async function POST(request: Request) {
     );
   }
 
-  const { title, content } = parsed.data;
+  const { title, content, status } = parsed.data;
   const baseSlug = slugify(title);
 
   try {
@@ -119,6 +119,8 @@ export async function POST(request: Request) {
         title,
         content,
         slug,
+        status,
+        publishedAt: status === "published" ? new Date() : null,
         authorId: session.user.id,
       },
       select: {

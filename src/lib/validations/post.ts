@@ -15,6 +15,7 @@ export const createPostSchema = z.object({
     .trim()
     .min(1, "Post content is required.")
     .max(100_000, "Post content is too long."),
+  status: z.enum(["draft", "published"]).default("draft"),
 });
 
 export const updatePostSchema = z
@@ -34,10 +35,17 @@ export const updatePostSchema = z
       .min(1, "Post content is required.")
       .max(100_000, "Post content is too long.")
       .optional(),
+    status: z.enum(["draft", "published"]).optional(),
   })
-  .refine((value) => value.title !== undefined || value.content !== undefined, {
-    message: "Provide a title or content to update.",
-  });
+  .refine(
+    (value) =>
+      value.title !== undefined ||
+      value.content !== undefined ||
+      value.status !== undefined,
+    {
+      message: "Provide a title, content, or status to update.",
+    }
+  );
 
 export const paginationSchema = z.object({
   page: z.coerce.number().int().min(1).max(1_000_000).default(1),

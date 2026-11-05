@@ -2,10 +2,12 @@
 
 import { useEffect, useRef, useState, type KeyboardEvent } from "react";
 import { AnimatePresence, motion } from "framer-motion";
+import { useRouter } from "next/navigation";
 import ReactMarkdown from "react-markdown";
 import rehypeHighlight from "rehype-highlight";
 import remarkGfm from "remark-gfm";
 import { MarkdownTextarea } from "@/components/editor/markdown-textarea";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/components/ui/toast-provider";
 
@@ -14,7 +16,11 @@ const DRAFT_STORAGE_KEY = "blog-post-draft";
 type SavedDraft = {
   title: string;
   content: string;
+  status?: PostStatus;
+  slug?: string;
 };
+
+type PostStatus = "draft" | "published";
 
 type MarkdownAction =
   | "bold"
@@ -58,20 +64,28 @@ function isSavedDraft(value: unknown): value is SavedDraft {
     "title" in value &&
     typeof value.title === "string" &&
     "content" in value &&
-    typeof value.content === "string"
+    typeof value.content === "string" &&
+    (!("status" in value) ||
+      value.status === "draft" ||
+      value.status === "published") &&
+    (!("slug" in value) || typeof value.slug === "string")
   );
 }
 
 export function MarkdownWorkspace() {
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
+  const [status, setStatus] = useState<PostStatus>("draft");
+  const [savedSlug, setSavedSlug] = useState<string | null>(null);
   const [view, setView] = useState<EditorView>("split");
   const [draftReady, setDraftReady] = useState(false);
   const [saveStatus, setSaveStatus] = useState<
     "ready" | "saving" | "saved" | "error"
   >("ready");
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const { addToast } = useToast();
+  const router = useRouter();
 
   useEffect(() => {
     try {
@@ -83,6 +97,8 @@ export function MarkdownWorkspace() {
         }
         setTitle(draft.title);
         setContent(draft.content);
+        setStatus(draft.status ?? "draft");
+        setSavedSlug(draft.slug ?? null);
         setSaveStatus("saved");
       }
     } catch (error) {
@@ -102,7 +118,7 @@ export function MarkdownWorkspace() {
         if (title.trim() || content.trim()) {
           window.localStorage.setItem(
             DRAFT_STORAGE_KEY,
-            JSON.stringify({ title, content })
+            JSON.stringify({ title, content, status, slug: savedSlug })
           );
         } else {
           window.localStorage.removeItem(DRAFT_STORAGE_KEY);
@@ -111,12 +127,65 @@ export function MarkdownWorkspace() {
       } catch (error) {
         console.error("Could not save the post draft.", error);
         setSaveStatus("error");
-        addToast("Could not save your draft on this device.", "error");
+        addToast("Could not autosave your post on this device.", "error");
       }
     }, 500);
 
     return () => window.clearTimeout(timeout);
-  }, [addToast, content, draftReady, title]);
+  }, [addToast, content, draftReady, savedSlug, status, title]);
+
+  async function handleSavePost() {
+    setIsSubmitting(true);
+    try {
+      const response = await fetch(
+        savedSlug
+          ? `/api/posts/${encodeURIComponent(savedSlug)}`
+          : "/api/posts",
+        {
+          method: savedSlug ? "PATCH" : "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ title, content, status }),
+        }
+      );
+      const result: unknown = await response.json();
+      if (!response.ok) {
+        const message =
+          typeof result === "object" &&
+          result !== null &&
+          "error" in result &&
+          typeof result.error === "string"
+            ? result.error
+            : "Unable to save the post.";
+        addToast(message, "error");
+        return;
+      }
+
+      if (
+        typeof result !== "object" ||
+        result === null ||
+        !("post" in result) ||
+        typeof result.post !== "object" ||
+        result.post === null ||
+        !("slug" in result.post) ||
+        typeof result.post.slug !== "string"
+      ) {
+        throw new Error("The post endpoint returned an invalid response.");
+      }
+
+      setSavedSlug(result.post.slug);
+      if (status === "published") {
+        addToast("Your post is published.", "success");
+        router.push(`/posts/${result.post.slug}`);
+      } else {
+        addToast("Your draft has been saved.", "success");
+      }
+    } catch (error) {
+      console.error("Could not save the post.", error);
+      addToast("Unable to save the post right now.", "error");
+    } finally {
+      setIsSubmitting(false);
+    }
+  }
 
   function formatContent(action: MarkdownAction) {
     const textarea = textareaRef.current;
@@ -204,147 +273,182 @@ export function MarkdownWorkspace() {
   }
 
   return (
-    <div>
-      <div
-        aria-label="Editor view"
-        className="mb-6 inline-flex rounded-xl border border-border bg-surface p-1"
-        role="group"
-      >
-        {editorViews.map(({ value, label }) => (
-          <button
-            key={value}
-            type="button"
-            aria-pressed={view === value}
-            onClick={() => setView(value)}
-            className="relative min-h-10 min-w-20 rounded-lg px-4 text-sm font-medium text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-600"
-          >
-            {view === value && (
-              <motion.span
-                aria-hidden="true"
-                className="absolute inset-0 rounded-lg bg-background shadow-sm"
-                layoutId="editor-view-indicator"
-                transition={{ type: "spring", stiffness: 400, damping: 30 }}
-              />
-            )}
-            <span className="relative z-10">{label}</span>
-          </button>
-        ))}
-      </div>
+    <form
+      onSubmit={(event) => {
+        event.preventDefault();
+        void handleSavePost();
+      }}
+    >
+      <div>
+        <div
+          aria-label="Post status"
+          className="mb-4 inline-flex rounded-xl border border-border bg-surface p-1"
+          role="group"
+        >
+          {(["draft", "published"] as const).map((value) => (
+            <button
+              key={value}
+              type="button"
+              aria-pressed={status === value}
+              onClick={() => setStatus(value)}
+              className="min-h-10 rounded-lg px-4 text-sm font-medium capitalize text-foreground transition-colors hover:bg-background focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-600 aria-pressed:bg-background aria-pressed:shadow-sm"
+            >
+              {value}
+            </button>
+          ))}
+        </div>
+        <div
+          aria-label="Editor view"
+          className="mb-6 inline-flex rounded-xl border border-border bg-surface p-1"
+          role="group"
+        >
+          {editorViews.map(({ value, label }) => (
+            <button
+              key={value}
+              type="button"
+              aria-pressed={view === value}
+              onClick={() => setView(value)}
+              className="relative min-h-10 min-w-20 rounded-lg px-4 text-sm font-medium text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-600"
+            >
+              {view === value && (
+                <motion.span
+                  aria-hidden="true"
+                  className="absolute inset-0 rounded-lg bg-background shadow-sm"
+                  layoutId="editor-view-indicator"
+                  transition={{ type: "spring", stiffness: 400, damping: 30 }}
+                />
+              )}
+              <span className="relative z-10">{label}</span>
+            </button>
+          ))}
+        </div>
 
-      <div className={`grid gap-6 ${view === "split" ? "lg:grid-cols-2" : ""}`}>
-        <AnimatePresence initial={false} mode="sync">
-          {view !== "preview" && (
-            <motion.section
-              key="writing"
-              aria-labelledby="writing-heading"
-              className="min-w-0 rounded-2xl border border-border bg-background p-5 shadow-sm sm:p-7"
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: 8 }}
-              transition={{ duration: 0.18 }}
-            >
-              <h2 id="writing-heading" className="sr-only">
-                Write your post
-              </h2>
-              <label
-                htmlFor="post-title"
-                className="mb-2 block text-sm font-medium text-foreground"
+        <div
+          className={`grid gap-6 ${view === "split" ? "lg:grid-cols-2" : ""}`}
+        >
+          <AnimatePresence initial={false} mode="sync">
+            {view !== "preview" && (
+              <motion.section
+                key="writing"
+                aria-labelledby="writing-heading"
+                className="min-w-0 rounded-2xl border border-border bg-background p-5 shadow-sm sm:p-7"
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: 8 }}
+                transition={{ duration: 0.18 }}
               >
-                Title
-              </label>
-              <Input
-                id="post-title"
-                name="title"
-                value={title}
-                onChange={(event) => setTitle(event.currentTarget.value)}
-                placeholder="Give your story a title"
-                maxLength={120}
-              />
-              <label
-                htmlFor="post-content"
-                className="mb-2 mt-6 block text-sm font-medium text-foreground"
+                <h2 id="writing-heading" className="sr-only">
+                  Write your post
+                </h2>
+                <label
+                  htmlFor="post-title"
+                  className="mb-2 block text-sm font-medium text-foreground"
+                >
+                  Title
+                </label>
+                <Input
+                  id="post-title"
+                  name="title"
+                  value={title}
+                  onChange={(event) => setTitle(event.currentTarget.value)}
+                  placeholder="Give your story a title"
+                  maxLength={120}
+                />
+                <label
+                  htmlFor="post-content"
+                  className="mb-2 mt-6 block text-sm font-medium text-foreground"
+                >
+                  Story
+                </label>
+                <div
+                  aria-label="Markdown formatting"
+                  className="mb-3 flex flex-wrap gap-2"
+                  role="group"
+                >
+                  {toolbarActions.map(({ action, label, symbol }) => (
+                    <button
+                      key={action}
+                      type="button"
+                      aria-label={label}
+                      title={label}
+                      onMouseDown={(event) => event.preventDefault()}
+                      onClick={() => formatContent(action)}
+                      className="min-h-10 rounded-lg border border-border bg-background px-3 text-sm font-medium text-foreground transition-colors hover:bg-surface focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-600"
+                    >
+                      {symbol}
+                    </button>
+                  ))}
+                </div>
+                <MarkdownTextarea
+                  ref={textareaRef}
+                  id="post-content"
+                  name="content"
+                  value={content}
+                  onChange={(event) => setContent(event.currentTarget.value)}
+                  onKeyDown={handleEditorKeyDown}
+                  placeholder="Start writing your story…"
+                  aria-describedby="markdown-help"
+                />
+                <p id="markdown-help" className="mt-2 text-xs text-muted">
+                  Markdown is supported. Use Ctrl/Cmd+B for bold, Ctrl/Cmd+I for
+                  italic, or Ctrl/Cmd+K for a link.
+                </p>
+              </motion.section>
+            )}
+            {view !== "write" && (
+              <motion.section
+                key="preview"
+                aria-labelledby="preview-heading"
+                className="min-h-[24rem] min-w-0 rounded-2xl border border-border bg-surface p-5 sm:p-7"
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: 8 }}
+                transition={{ duration: 0.18 }}
               >
-                Story
-              </label>
-              <div
-                aria-label="Markdown formatting"
-                className="mb-3 flex flex-wrap gap-2"
-                role="group"
-              >
-                {toolbarActions.map(({ action, label, symbol }) => (
-                  <button
-                    key={action}
-                    type="button"
-                    aria-label={label}
-                    title={label}
-                    onMouseDown={(event) => event.preventDefault()}
-                    onClick={() => formatContent(action)}
-                    className="min-h-10 rounded-lg border border-border bg-background px-3 text-sm font-medium text-foreground transition-colors hover:bg-surface focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-600"
-                  >
-                    {symbol}
-                  </button>
-                ))}
-              </div>
-              <MarkdownTextarea
-                ref={textareaRef}
-                id="post-content"
-                name="content"
-                value={content}
-                onChange={(event) => setContent(event.currentTarget.value)}
-                onKeyDown={handleEditorKeyDown}
-                placeholder="Start writing your story…"
-                aria-describedby="markdown-help"
-              />
-              <p id="markdown-help" className="mt-2 text-xs text-muted">
-                Markdown is supported. Use Ctrl/Cmd+B for bold, Ctrl/Cmd+I for
-                italic, or Ctrl/Cmd+K for a link.
-              </p>
-              <p aria-live="polite" className="mt-1 text-xs text-muted">
-                {saveStatus === "saving"
-                  ? "Saving draft…"
-                  : saveStatus === "saved"
-                    ? "Draft saved on this device."
-                    : saveStatus === "error"
-                      ? "Draft could not be saved."
-                      : "Draft autosave ready."}
-              </p>
-            </motion.section>
-          )}
-          {view !== "write" && (
-            <motion.section
-              key="preview"
-              aria-labelledby="preview-heading"
-              className="min-h-[24rem] min-w-0 rounded-2xl border border-border bg-surface p-5 sm:p-7"
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: 8 }}
-              transition={{ duration: 0.18 }}
-            >
-              <h2
-                id="preview-heading"
-                className="text-xs font-semibold uppercase tracking-[0.16em] text-muted"
-              >
-                Preview
-              </h2>
-              <article className="markdown-content mt-8 break-words">
-                <h1>{title || "Your story title"}</h1>
-                {content ? (
-                  <ReactMarkdown
-                    remarkPlugins={[remarkGfm]}
-                    rehypePlugins={[rehypeHighlight]}
-                  >
-                    {content}
-                  </ReactMarkdown>
-                ) : (
-                  <p className="text-muted">
-                    Your formatted story will appear here as you write.
-                  </p>
-                )}
-              </article>
-            </motion.section>
-          )}
-        </AnimatePresence>
+                <h2
+                  id="preview-heading"
+                  className="text-xs font-semibold uppercase tracking-[0.16em] text-muted"
+                >
+                  Preview
+                </h2>
+                <article className="markdown-content mt-8 break-words">
+                  <h1>{title || "Your story title"}</h1>
+                  {content ? (
+                    <ReactMarkdown
+                      remarkPlugins={[remarkGfm]}
+                      rehypePlugins={[rehypeHighlight]}
+                    >
+                      {content}
+                    </ReactMarkdown>
+                  ) : (
+                    <p className="text-muted">
+                      Your formatted story will appear here as you write.
+                    </p>
+                  )}
+                </article>
+              </motion.section>
+            )}
+          </AnimatePresence>
+        </div>
+        <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <p aria-live="polite" className="text-xs text-muted">
+            {saveStatus === "saving"
+              ? "Saving changes locally…"
+              : saveStatus === "saved"
+                ? "Changes saved on this device."
+                : saveStatus === "error"
+                  ? "Changes could not be saved locally."
+                  : "Local autosave ready."}
+          </p>
+          <Button type="submit" disabled={isSubmitting}>
+            {isSubmitting
+              ? "Saving…"
+              : status === "published"
+                ? "Publish post"
+                : "Save draft"}
+          </Button>
+        </div>
       </div>
-    </div>
+    </form>
   );
 }

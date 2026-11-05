@@ -88,9 +88,21 @@ export async function PATCH(request: Request, { params }: PostRouteContext) {
       return NextResponse.json({ error: "Post not found." }, { status: 404 });
     }
 
+    const { status, ...postFields } = parsed.data;
     const post = await prisma.post.update({
       where: { id: existingPost.id },
-      data: parsed.data,
+      data: {
+        ...postFields,
+        ...(status !== undefined && {
+          status,
+          publishedAt:
+            status === "published"
+              ? existingPost.status === "published"
+                ? (existingPost.publishedAt ?? new Date())
+                : new Date()
+              : null,
+        }),
+      },
       select: {
         id: true,
         title: true,
