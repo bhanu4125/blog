@@ -1,7 +1,13 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
-import { motion } from "framer-motion";
+import {
+  useEffect,
+  useRef,
+  useState,
+  type FormEvent,
+  type RefObject,
+} from "react";
+import { AnimatePresence, motion } from "framer-motion";
 import { useSession } from "next-auth/react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/input";
@@ -20,16 +26,21 @@ type CommentListProps = {
   onRetry: () => void;
   onReply: (comment: PostComment) => void;
   onUpdated: (comment: PostComment) => void;
+  onDeleted: (comment: PostComment) => void;
 };
 
 function CommentContent({
   comment,
   onReply,
   onEdit,
+  onDelete,
+  deleteButtonRef,
 }: {
   comment: PostComment;
   onReply?: () => void;
   onEdit?: () => void;
+  onDelete?: () => void;
+  deleteButtonRef?: RefObject<HTMLButtonElement>;
 }) {
   const initial = comment.author.name.trim().charAt(0).toUpperCase();
 
@@ -62,7 +73,7 @@ function CommentContent({
         <p className="whitespace-pre-wrap break-words text-sm leading-6 text-foreground">
           {comment.content}
         </p>
-        {(onReply || onEdit) && (
+        {(onReply || onEdit || onDelete) && (
           <div className="mt-2 flex gap-4">
             {onReply && (
               <button
@@ -84,6 +95,17 @@ function CommentContent({
                 Edit
               </button>
             )}
+            {onDelete && (
+              <button
+                ref={deleteButtonRef}
+                type="button"
+                disabled={comment.pending}
+                onClick={onDelete}
+                className="rounded-md text-xs font-semibold text-red-700 underline-offset-4 hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-600 disabled:opacity-50 dark:text-red-300"
+              >
+                Delete
+              </button>
+            )}
           </div>
         )}
       </div>
@@ -98,6 +120,7 @@ function CommentEntry({
   isOwner,
   onReply,
   onUpdated,
+  onDeleted,
 }: {
   comment: PostComment;
   postSlug: string;
@@ -105,11 +128,38 @@ function CommentEntry({
   isOwner: boolean;
   onReply: (comment: PostComment) => void;
   onUpdated: (comment: PostComment) => void;
+  onDeleted: (comment: PostComment) => void;
 }) {
   const [isEditing, setIsEditing] = useState(false);
   const [content, setContent] = useState(comment.content);
   const [isSaving, setIsSaving] = useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const deleteButtonRef = useRef<HTMLButtonElement>(null);
+  const cancelButtonRef = useRef<HTMLButtonElement>(null);
+  const dialogWasOpenRef = useRef(false);
   const { addToast } = useToast();
+
+  useEffect(() => {
+    if (!isDeleteDialogOpen) {
+      if (dialogWasOpenRef.current) {
+        deleteButtonRef.current?.focus();
+        dialogWasOpenRef.current = false;
+      }
+      return;
+    }
+
+    dialogWasOpenRef.current = true;
+    cancelButtonRef.current?.focus();
+    function handleDialogKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape" && !isDeleting) {
+        setIsDeleteDialogOpen(false);
+      }
+    }
+
+    document.addEventListener("keydown", handleDialogKeyDown);
+    return () => document.removeEventListener("keydown", handleDialogKeyDown);
+  }, [isDeleteDialogOpen, isDeleting]);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -152,12 +202,42 @@ function CommentEntry({
     }
   }
 
+  async function handleDelete() {
+    setIsDeleting(true);
+    try {
+      const response = await fetch(
+        `/api/posts/${encodeURIComponent(postSlug)}/comments/${encodeURIComponent(comment.id)}`,
+        { method: "DELETE" }
+      );
+      const payload: unknown = await response.json();
+
+      if (!response.ok) {
+        addToast(
+          getCommentErrorMessage(payload, "Unable to delete your comment."),
+          "error"
+        );
+        return;
+      }
+
+      onDeleted(comment);
+      setIsDeleteDialogOpen(false);
+      addToast("Your comment was deleted.", "success");
+    } catch (error) {
+      console.error("Could not delete the comment.", error);
+      addToast("Unable to delete your comment right now.", "error");
+    } finally {
+      setIsDeleting(false);
+    }
+  }
+
   return (
     <div>
       <CommentContent
         comment={comment}
         onReply={canReply ? () => onReply(comment) : undefined}
-        onEdit={isOwner ? () => setIsEditing(true) : undefined}
+        onEdit={isOwner && !isEditing ? () => setIsEditing(true) : undefined}
+        onDelete={isOwner ? () => setIsDeleteDialogOpen(true) : undefined}
+        deleteButtonRef={deleteButtonRef}
       />
       {isEditing && (
         <form className="ml-12 mt-3 space-y-3" onSubmit={handleSubmit}>
@@ -190,6 +270,67 @@ function CommentEntry({
           </div>
         </form>
       )}
+      <AnimatePresence>
+        {isDeleteDialogOpen && (
+          <motion.div
+            className="fixed inset-0 z-[110] flex items-center justify-center bg-slate-950/50 p-4"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onMouseDown={(event) => {
+              if (!isDeleting && event.target === event.currentTarget) {
+                setIsDeleteDialogOpen(false);
+              }
+            }}
+          >
+            <motion.div
+              role="alertdialog"
+              aria-modal="true"
+              aria-labelledby={`delete-comment-title-${comment.id}`}
+              aria-describedby={`delete-comment-description-${comment.id}`}
+              className="w-full max-w-md rounded-2xl border border-border bg-background p-6 shadow-2xl"
+              initial={{ opacity: 0, y: 12, scale: 0.98 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 8, scale: 0.98 }}
+              transition={{ duration: 0.18 }}
+            >
+              <h2
+                id={`delete-comment-title-${comment.id}`}
+                className="text-lg font-semibold text-foreground"
+              >
+                Delete this comment?
+              </h2>
+              <p
+                id={`delete-comment-description-${comment.id}`}
+                className="mt-2 text-sm leading-6 text-muted"
+              >
+                {comment.replies?.length
+                  ? "This will also permanently delete its replies."
+                  : "This action cannot be undone."}
+              </p>
+              <div className="mt-6 flex justify-end gap-3">
+                <button
+                  ref={cancelButtonRef}
+                  type="button"
+                  disabled={isDeleting}
+                  onClick={() => setIsDeleteDialogOpen(false)}
+                  className="inline-flex min-h-11 items-center justify-center rounded-xl border border-border bg-background px-5 py-2.5 text-sm font-semibold text-foreground transition-colors hover:bg-slate-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-600 disabled:pointer-events-none disabled:opacity-50 dark:hover:bg-slate-800"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  disabled={isDeleting}
+                  onClick={() => void handleDelete()}
+                  className="inline-flex min-h-11 items-center justify-center rounded-xl bg-red-600 px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-red-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-600 disabled:pointer-events-none disabled:opacity-50"
+                >
+                  {isDeleting ? "Deleting…" : "Delete comment"}
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
@@ -202,6 +343,7 @@ export function CommentList({
   onRetry,
   onReply,
   onUpdated,
+  onDeleted,
 }: CommentListProps) {
   const { data: session } = useSession();
   if (loadState === "loading" && comments.length === 0) {
@@ -271,6 +413,7 @@ export function CommentList({
                 isOwner={session?.user.id === comment.author.id}
                 onReply={onReply}
                 onUpdated={onUpdated}
+                onDeleted={onDeleted}
               />
               {comment.replies && comment.replies.length > 0 && (
                 <ol className="ml-5 mt-4 space-y-4 border-l border-border pl-4 sm:ml-12">
@@ -283,6 +426,7 @@ export function CommentList({
                         isOwner={session?.user.id === reply.author.id}
                         onReply={onReply}
                         onUpdated={onUpdated}
+                        onDeleted={onDeleted}
                       />
                     </li>
                   ))}

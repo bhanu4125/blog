@@ -159,6 +159,22 @@ export function CommentsSection({ postSlug }: CommentsSectionProps) {
     );
   }, []);
 
+  const deleteComment = useCallback((deletedComment: PostComment) => {
+    setComments((current) =>
+      deletedComment.parentId
+        ? current.map((root) => ({
+            ...root,
+            replies: root.replies?.filter(
+              (reply) => reply.id !== deletedComment.id
+            ),
+          }))
+        : current.filter((root) => root.id !== deletedComment.id)
+    );
+    setReplyTarget((current) =>
+      current?.id === deletedComment.id ? null : current
+    );
+  }, []);
+
   return (
     <>
       <CommentForm
@@ -184,6 +200,7 @@ export function CommentsSection({ postSlug }: CommentsSectionProps) {
           onRetry={() => setReloadCount((count) => count + 1)}
           onReply={setReplyTarget}
           onUpdated={updateComment}
+          onDeleted={deleteComment}
         />
       </div>
     </>
