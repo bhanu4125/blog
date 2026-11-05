@@ -27,7 +27,7 @@ export default async function PostPage({ params }: PostPageProps) {
       content: true,
       publishedAt: true,
       author: {
-        select: { name: true },
+        select: { id: true, name: true },
       },
     },
   });
@@ -74,7 +74,12 @@ export default async function PostPage({ params }: PostPageProps) {
             </span>
             <div>
               <p className="text-sm font-semibold text-foreground">
-                {post.author.name}
+                <Link
+                  href={`/authors/${post.author.id}`}
+                  className="rounded-sm outline-none hover:text-brand-600 focus-visible:ring-2 focus-visible:ring-brand-500"
+                >
+                  {post.author.name}
+                </Link>
               </p>
               <time
                 dateTime={post.publishedAt?.toISOString()}
