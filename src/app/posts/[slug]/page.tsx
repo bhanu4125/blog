@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
+import { calculateReadingTime } from "@/lib/reading-time";
 
 type PostPageProps = {
   params: {
@@ -38,6 +39,7 @@ export default async function PostPage({ params }: PostPageProps) {
         year: "numeric",
       }).format(post.publishedAt)
     : "Recently published";
+  const readingTime = calculateReadingTime(post.content);
 
   return (
     <main className="mx-auto w-full max-w-3xl flex-1 px-6 py-10 md:py-16">
@@ -76,6 +78,11 @@ export default async function PostPage({ params }: PostPageProps) {
               >
                 {publishedDate}
               </time>
+              <span className="text-sm text-muted" aria-hidden="true">
+                {" "}
+                ·{" "}
+              </span>
+              <span className="text-sm text-muted">{readingTime} min read</span>
             </div>
           </div>
         </header>
