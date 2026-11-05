@@ -1,4 +1,5 @@
-import { Input, Textarea } from "@/components/ui/input";
+import { MarkdownTextarea } from "@/components/editor/markdown-textarea";
+import { Input } from "@/components/ui/input";
 
 export default function WritePage() {
   return (
@@ -43,12 +44,15 @@ export default function WritePage() {
           >
             Story
           </label>
-          <Textarea
+          <MarkdownTextarea
             id="post-content"
             name="content"
-            className="min-h-[28rem] font-mono leading-7"
             placeholder="Start writing your story…"
+            aria-describedby="markdown-help"
           />
+          <p id="markdown-help" className="mt-2 text-xs text-muted">
+            Markdown formatting is supported.
+          </p>
         </section>
 
         <section
