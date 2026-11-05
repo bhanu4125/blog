@@ -17,6 +17,8 @@
 
 # Production
 /build
+*.db
+*.db-journal
 
 # Misc
 .DS_Store
