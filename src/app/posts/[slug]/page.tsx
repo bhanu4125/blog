@@ -1,4 +1,5 @@
 import Link from "next/link";
+import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { getServerSession } from "next-auth";
 import ReactMarkdown from "react-markdown";
@@ -13,6 +14,7 @@ import { ReadingProgressBar } from "@/components/posts/reading-progress-bar";
 import { ShareButton } from "@/components/posts/share-button";
 import { Avatar } from "@/components/profile/avatar";
 import { authOptions } from "@/lib/auth";
+import { siteConfig } from "@/config/site";
 import { prisma } from "@/lib/prisma";
 import { calculateReadingTime } from "@/lib/reading-time";
 
@@ -23,6 +25,66 @@ type PostPageProps = {
 };
 
 export const dynamic = "force-dynamic";
+
+export async function generateMetadata({
+  params,
+}: PostPageProps): Promise<Metadata> {
+  const post = await prisma.post.findFirst({
+    where: {
+      slug: params.slug,
+      status: "published",
+      publishedAt: { not: null },
+    },
+    select: {
+      title: true,
+      excerpt: true,
+      content: true,
+      publishedAt: true,
+      author: { select: { name: true } },
+    },
+  });
+
+  if (!post) {
+    notFound();
+  }
+
+  const description =
+    post.excerpt?.trim() ||
+    post.content
+      .replace(/[#*_`~[\]()>!-]/g, " ")
+      .replace(/\s+/g, " ")
+      .trim()
+      .slice(0, 160) ||
+    siteConfig.description;
+  const image = {
+    url: "/opengraph-image",
+    width: 1200,
+    height: 630,
+    alt: post.title,
+  };
+
+  return {
+    title: post.title,
+    description,
+    authors: [{ name: post.author.name }],
+    alternates: { canonical: `/posts/${params.slug}` },
+    openGraph: {
+      type: "article",
+      title: post.title,
+      description,
+      url: `/posts/${params.slug}`,
+      publishedTime: post.publishedAt?.toISOString(),
+      authors: [post.author.name],
+      images: [image],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: post.title,
+      description,
+      images: [image.url],
+    },
+  };
+}
 
 export default async function PostPage({ params }: PostPageProps) {
   const session = await getServerSession(authOptions);
