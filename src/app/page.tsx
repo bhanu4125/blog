@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { PostList } from "@/components/posts/post-list";
+import { EmptyState } from "@/components/ui/empty-state";
 import { POSTS_PER_PAGE } from "@/lib/constants";
 import { prisma } from "@/lib/prisma";
 
@@ -56,15 +57,18 @@ export default async function HomePage() {
           {posts.length > 0 ? (
             <PostList posts={posts} />
           ) : (
-            <div className="rounded-2xl border border-dashed border-border bg-surface px-6 py-16 text-center">
-              <h2 className="text-xl font-semibold text-foreground">
-                The first story is waiting to be written.
-              </h2>
-              <p className="mx-auto mt-3 max-w-md text-sm leading-6 text-muted">
-                Join the community and be the first to share an idea with
-                everyone.
-              </p>
-            </div>
+            <EmptyState
+              title="The first story is waiting to be written."
+              description="Join the community and be the first to share an idea with everyone."
+              action={
+                <Link
+                  href="/register"
+                  className="inline-flex min-h-11 items-center justify-center rounded-xl bg-brand-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm outline-none transition-colors hover:bg-brand-700 focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2"
+                >
+                  Create an account
+                </Link>
+              }
+            />
           )}
         </div>
       </section>
