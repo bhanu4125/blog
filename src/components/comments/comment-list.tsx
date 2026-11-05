@@ -1,22 +1,35 @@
 "use client";
 
+import { useState, type FormEvent } from "react";
 import { motion } from "framer-motion";
-import type { PostComment } from "@/components/comments/types";
+import { useSession } from "next-auth/react";
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/input";
+import { useToast } from "@/components/ui/toast-provider";
+import {
+  getCommentErrorMessage,
+  readCreatedComment,
+  type PostComment,
+} from "@/components/comments/types";
 
 type CommentListProps = {
+  postSlug: string;
   comments: PostComment[];
   loadState: "loading" | "loaded" | "error";
   errorMessage: string;
   onRetry: () => void;
   onReply: (comment: PostComment) => void;
+  onUpdated: (comment: PostComment) => void;
 };
 
 function CommentContent({
   comment,
   onReply,
+  onEdit,
 }: {
   comment: PostComment;
   onReply?: () => void;
+  onEdit?: () => void;
 }) {
   const initial = comment.author.name.trim().charAt(0).toUpperCase();
 
@@ -49,28 +62,148 @@ function CommentContent({
         <p className="whitespace-pre-wrap break-words text-sm leading-6 text-foreground">
           {comment.content}
         </p>
-        {onReply && (
-          <button
-            type="button"
-            disabled={comment.pending}
-            onClick={onReply}
-            className="mt-2 rounded-md text-xs font-semibold text-brand-600 underline-offset-4 hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-600 disabled:opacity-50"
-          >
-            Reply
-          </button>
+        {(onReply || onEdit) && (
+          <div className="mt-2 flex gap-4">
+            {onReply && (
+              <button
+                type="button"
+                disabled={comment.pending}
+                onClick={onReply}
+                className="rounded-md text-xs font-semibold text-brand-600 underline-offset-4 hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-600 disabled:opacity-50"
+              >
+                Reply
+              </button>
+            )}
+            {onEdit && (
+              <button
+                type="button"
+                disabled={comment.pending}
+                onClick={onEdit}
+                className="rounded-md text-xs font-semibold text-muted underline-offset-4 hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-600 disabled:opacity-50"
+              >
+                Edit
+              </button>
+            )}
+          </div>
         )}
       </div>
     </article>
   );
 }
 
+function CommentEntry({
+  comment,
+  postSlug,
+  canReply,
+  isOwner,
+  onReply,
+  onUpdated,
+}: {
+  comment: PostComment;
+  postSlug: string;
+  canReply: boolean;
+  isOwner: boolean;
+  onReply: (comment: PostComment) => void;
+  onUpdated: (comment: PostComment) => void;
+}) {
+  const [isEditing, setIsEditing] = useState(false);
+  const [content, setContent] = useState(comment.content);
+  const [isSaving, setIsSaving] = useState(false);
+  const { addToast } = useToast();
+
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const trimmedContent = content.trim();
+    if (!trimmedContent) {
+      addToast("A comment cannot be empty.", "error");
+      return;
+    }
+
+    setIsSaving(true);
+    try {
+      const response = await fetch(
+        `/api/posts/${encodeURIComponent(postSlug)}/comments/${encodeURIComponent(comment.id)}`,
+        {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ content: trimmedContent }),
+        }
+      );
+      const payload: unknown = await response.json();
+
+      if (!response.ok) {
+        addToast(
+          getCommentErrorMessage(payload, "Unable to update your comment."),
+          "error"
+        );
+        return;
+      }
+
+      const updatedComment = readCreatedComment(payload);
+      onUpdated(updatedComment);
+      setContent(updatedComment.content);
+      setIsEditing(false);
+      addToast("Your comment was updated.", "success");
+    } catch (error) {
+      console.error("Could not update the comment.", error);
+      addToast("Unable to update your comment right now.", "error");
+    } finally {
+      setIsSaving(false);
+    }
+  }
+
+  return (
+    <div>
+      <CommentContent
+        comment={comment}
+        onReply={canReply ? () => onReply(comment) : undefined}
+        onEdit={isOwner ? () => setIsEditing(true) : undefined}
+      />
+      {isEditing && (
+        <form className="ml-12 mt-3 space-y-3" onSubmit={handleSubmit}>
+          <label htmlFor={`edit-comment-${comment.id}`} className="sr-only">
+            Edit comment
+          </label>
+          <Textarea
+            id={`edit-comment-${comment.id}`}
+            value={content}
+            onChange={(event) => setContent(event.currentTarget.value)}
+            maxLength={2_000}
+            required
+            rows={3}
+          />
+          <div className="flex justify-end gap-2">
+            <Button
+              type="button"
+              variant="secondary"
+              disabled={isSaving}
+              onClick={() => {
+                setContent(comment.content);
+                setIsEditing(false);
+              }}
+            >
+              Cancel
+            </Button>
+            <Button type="submit" disabled={isSaving || !content.trim()}>
+              {isSaving ? "Saving…" : "Save comment"}
+            </Button>
+          </div>
+        </form>
+      )}
+    </div>
+  );
+}
+
 export function CommentList({
+  postSlug,
   comments,
   loadState,
   errorMessage,
   onRetry,
   onReply,
+  onUpdated,
 }: CommentListProps) {
+  const { data: session } = useSession();
   if (loadState === "loading" && comments.length === 0) {
     return (
       <p className="text-sm text-muted" role="status">
@@ -131,15 +264,26 @@ export function CommentList({
                 delay: Math.min(index * 0.04, 0.24),
               }}
             >
-              <CommentContent
+              <CommentEntry
                 comment={comment}
-                onReply={() => onReply(comment)}
+                postSlug={postSlug}
+                canReply
+                isOwner={session?.user.id === comment.author.id}
+                onReply={onReply}
+                onUpdated={onUpdated}
               />
               {comment.replies && comment.replies.length > 0 && (
                 <ol className="ml-5 mt-4 space-y-4 border-l border-border pl-4 sm:ml-12">
                   {comment.replies.map((reply) => (
                     <li key={reply.id}>
-                      <CommentContent comment={reply} />
+                      <CommentEntry
+                        comment={reply}
+                        postSlug={postSlug}
+                        canReply={false}
+                        isOwner={session?.user.id === reply.author.id}
+                        onReply={onReply}
+                        onUpdated={onUpdated}
+                      />
                     </li>
                   ))}
                 </ol>

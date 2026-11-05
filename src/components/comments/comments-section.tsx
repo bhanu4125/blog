@@ -142,6 +142,23 @@ export function CommentsSection({ postSlug }: CommentsSectionProps) {
     );
   }, []);
 
+  const updateComment = useCallback((updatedComment: PostComment) => {
+    setComments((current) =>
+      current.map((root) => {
+        if (root.id === updatedComment.id) {
+          return { ...root, ...updatedComment, replies: root.replies ?? [] };
+        }
+
+        return {
+          ...root,
+          replies: root.replies?.map((reply) =>
+            reply.id === updatedComment.id ? updatedComment : reply
+          ),
+        };
+      })
+    );
+  }, []);
+
   return (
     <>
       <CommentForm
@@ -160,11 +177,13 @@ export function CommentsSection({ postSlug }: CommentsSectionProps) {
       <div className="mt-10">
         <h3 className="mb-5 text-lg font-semibold text-foreground">Comments</h3>
         <CommentList
+          postSlug={postSlug}
           comments={comments}
           loadState={loadState}
           errorMessage={errorMessage}
           onRetry={() => setReloadCount((count) => count + 1)}
           onReply={setReplyTarget}
+          onUpdated={updateComment}
         />
       </div>
     </>
