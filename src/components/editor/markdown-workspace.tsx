@@ -24,6 +24,14 @@ type SavedDraft = {
 
 type PostStatus = "draft" | "published";
 
+type InitialPost = {
+  slug: string;
+  title: string;
+  content: string;
+  status: PostStatus;
+  coverImageUrl: string | null;
+};
+
 type MarkdownAction =
   | "bold"
   | "italic"
@@ -76,13 +84,23 @@ function isSavedDraft(value: unknown): value is SavedDraft {
   );
 }
 
-export function MarkdownWorkspace() {
-  const [title, setTitle] = useState("");
-  const [content, setContent] = useState("");
-  const [coverImageUrl, setCoverImageUrl] = useState("");
+export function MarkdownWorkspace({
+  initialPost,
+}: {
+  initialPost?: InitialPost;
+}) {
+  const [title, setTitle] = useState(initialPost?.title ?? "");
+  const [content, setContent] = useState(initialPost?.content ?? "");
+  const [coverImageUrl, setCoverImageUrl] = useState(
+    initialPost?.coverImageUrl ?? ""
+  );
   const [tags, setTags] = useState("");
-  const [status, setStatus] = useState<PostStatus>("draft");
-  const [savedSlug, setSavedSlug] = useState<string | null>(null);
+  const [status, setStatus] = useState<PostStatus>(
+    initialPost?.status ?? "draft"
+  );
+  const [savedSlug, setSavedSlug] = useState<string | null>(
+    initialPost?.slug ?? null
+  );
   const [view, setView] = useState<EditorView>("split");
   const [draftReady, setDraftReady] = useState(false);
   const [saveStatus, setSaveStatus] = useState<
@@ -92,10 +110,13 @@ export function MarkdownWorkspace() {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const { addToast } = useToast();
   const router = useRouter();
+  const draftStorageKey = initialPost
+    ? `${DRAFT_STORAGE_KEY}:${initialPost.slug}`
+    : DRAFT_STORAGE_KEY;
 
   useEffect(() => {
     try {
-      const saved = window.localStorage.getItem(DRAFT_STORAGE_KEY);
+      const saved = window.localStorage.getItem(draftStorageKey);
       if (saved) {
         const draft: unknown = JSON.parse(saved);
         if (!isSavedDraft(draft)) {
@@ -115,7 +136,7 @@ export function MarkdownWorkspace() {
     } finally {
       setDraftReady(true);
     }
-  }, [addToast]);
+  }, [addToast, draftStorageKey]);
 
   useEffect(() => {
     if (!draftReady) return;
@@ -130,7 +151,7 @@ export function MarkdownWorkspace() {
           tags.trim()
         ) {
           window.localStorage.setItem(
-            DRAFT_STORAGE_KEY,
+            draftStorageKey,
             JSON.stringify({
               title,
               content,
@@ -141,7 +162,7 @@ export function MarkdownWorkspace() {
             })
           );
         } else {
-          window.localStorage.removeItem(DRAFT_STORAGE_KEY);
+          window.localStorage.removeItem(draftStorageKey);
         }
         setSaveStatus("saved");
       } catch (error) {
@@ -157,6 +178,7 @@ export function MarkdownWorkspace() {
     content,
     coverImageUrl,
     draftReady,
+    draftStorageKey,
     savedSlug,
     status,
     tags,
