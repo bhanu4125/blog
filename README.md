@@ -3,6 +3,18 @@
 A blogging platform built with Next.js 14, TypeScript, Tailwind CSS, Prisma, and
 PostgreSQL in production. Local development uses SQLite.
 
+## Product preview
+
+![A quick tour of the Blog home feed, a published story, and its comments](./public/demo.gif)
+
+### Home feed
+
+![Blog home page showing the story feed and search](./public/screenshots/home.png)
+
+### Reading experience
+
+![Published story page with Markdown content and reader actions](./public/screenshots/story.png)
+
 ## Prerequisites
 
 - Node.js 18 or later
