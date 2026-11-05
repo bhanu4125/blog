@@ -30,6 +30,7 @@ type InitialPost = {
   content: string;
   status: PostStatus;
   coverImageUrl: string | null;
+  tags: string[];
 };
 
 type MarkdownAction =
@@ -104,7 +105,7 @@ export function MarkdownWorkspace({
   const [coverImageUrl, setCoverImageUrl] = useState(
     initialPost?.coverImageUrl ?? ""
   );
-  const [tags, setTags] = useState("");
+  const [tags, setTags] = useState(initialPost?.tags.join(", ") ?? "");
   const [status, setStatus] = useState<PostStatus>(
     initialPost?.status ?? "draft"
   );
@@ -282,6 +283,10 @@ export function MarkdownWorkspace({
             content,
             status,
             coverImageUrl: coverImageUrl.trim() || null,
+            tags: tags
+              .split(",")
+              .map((tag) => tag.trim())
+              .filter(Boolean),
           }),
         }
       );

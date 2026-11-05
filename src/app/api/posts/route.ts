@@ -4,6 +4,7 @@ import { NextResponse } from "next/server";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { slugify } from "@/lib/slug";
+import { normalizeTags } from "@/lib/tags";
 import { createPostSchema, paginationSchema } from "@/lib/validations/post";
 
 export async function GET(request: Request) {
@@ -45,6 +46,10 @@ export async function GET(request: Request) {
           publishedAt: true,
           author: {
             select: { id: true, name: true, imageUrl: true },
+          },
+          tags: {
+            select: { name: true, slug: true },
+            orderBy: { name: "asc" },
           },
           _count: { select: { comments: true } },
         },
@@ -102,8 +107,9 @@ export async function POST(request: Request) {
     );
   }
 
-  const { title, content, status, coverImageUrl } = parsed.data;
+  const { title, content, status, coverImageUrl, tags } = parsed.data;
   const baseSlug = slugify(title);
+  const normalizedTags = normalizeTags(tags);
 
   try {
     let slug = baseSlug;
@@ -122,7 +128,13 @@ export async function POST(request: Request) {
         status,
         coverImageUrl: coverImageUrl ?? null,
         publishedAt: status === "published" ? new Date() : null,
-        authorId: session.user.id,
+        author: { connect: { id: session.user.id } },
+        tags: {
+          connectOrCreate: normalizedTags.map(({ name, slug }) => ({
+            where: { slug },
+            create: { name, slug },
+          })),
+        },
       },
       select: {
         id: true,
@@ -131,6 +143,10 @@ export async function POST(request: Request) {
         slug: true,
         status: true,
         createdAt: true,
+        tags: {
+          select: { name: true, slug: true },
+          orderBy: { name: "asc" },
+        },
       },
     });
 

@@ -23,6 +23,10 @@ export const createPostSchema = z.object({
     .max(2048, "Cover image URL is too long.")
     .nullable()
     .optional(),
+  tags: z
+    .array(z.string().trim().min(1).max(30))
+    .max(10, "A post can have at most 10 tags.")
+    .default([]),
 });
 
 export const updatePostSchema = z
@@ -50,15 +54,21 @@ export const updatePostSchema = z
       .max(2048, "Cover image URL is too long.")
       .nullable()
       .optional(),
+    tags: z
+      .array(z.string().trim().min(1).max(30))
+      .max(10, "A post can have at most 10 tags.")
+      .optional(),
   })
   .refine(
     (value) =>
       value.title !== undefined ||
       value.content !== undefined ||
       value.status !== undefined ||
-      value.coverImageUrl !== undefined,
+      value.coverImageUrl !== undefined ||
+      value.tags !== undefined,
     {
-      message: "Provide a title, content, status, or cover image to update.",
+      message:
+        "Provide a title, content, status, cover image, or tags to update.",
     }
   );
 

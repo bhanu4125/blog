@@ -26,6 +26,7 @@ export default async function EditPostPage({ params }: EditPostPageProps) {
       content: true,
       status: true,
       coverImageUrl: true,
+      tags: { select: { name: true } },
     },
   });
 
@@ -57,6 +58,7 @@ export default async function EditPostPage({ params }: EditPostPageProps) {
         initialPost={{
           ...post,
           status: post.status,
+          tags: post.tags.map((tag) => tag.name),
         }}
       />
     </main>

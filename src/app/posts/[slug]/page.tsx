@@ -30,6 +30,10 @@ export default async function PostPage({ params }: PostPageProps) {
       author: {
         select: { id: true, name: true, imageUrl: true },
       },
+      tags: {
+        select: { name: true, slug: true },
+        orderBy: { name: "asc" },
+      },
     },
   });
 
@@ -94,6 +98,20 @@ export default async function PostPage({ params }: PostPageProps) {
               <span className="text-sm text-muted">{readingTime} min read</span>
             </div>
           </div>
+          {post.tags.length > 0 && (
+            <ul aria-label="Post tags" className="mt-6 flex flex-wrap gap-2">
+              {post.tags.map((tag) => (
+                <li key={tag.slug}>
+                  <Link
+                    href={`/tags/${tag.slug}`}
+                    className="inline-flex rounded-full border border-brand-200 bg-brand-50 px-3 py-1 text-xs font-medium text-brand-700 outline-none transition-colors hover:bg-brand-100 focus-visible:ring-2 focus-visible:ring-brand-500 dark:border-brand-800 dark:bg-brand-950 dark:text-brand-200 dark:hover:bg-brand-900"
+                  >
+                    {tag.name}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          )}
         </header>
 
         <div className="markdown-content break-words py-8 text-base leading-8 text-foreground">

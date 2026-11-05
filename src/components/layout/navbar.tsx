@@ -81,6 +81,12 @@ export function Navbar() {
           >
             Home
           </Link>
+          <Link
+            href="/tags"
+            className="rounded-lg px-3 py-2 text-sm font-medium text-muted outline-none transition-colors hover:text-foreground focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2"
+          >
+            Tags
+          </Link>
           {status === "authenticated" ? (
             <div className="relative" ref={userMenuRef}>
               <button

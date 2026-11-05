@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { findPostOwnedByUser } from "@/lib/post-authorization";
+import { normalizeTags } from "@/lib/tags";
 import { updatePostSchema } from "@/lib/validations/post";
 
 type PostRouteContext = {
@@ -30,6 +31,10 @@ export async function GET(_request: Request, { params }: PostRouteContext) {
         createdAt: true,
         author: {
           select: { id: true, name: true, imageUrl: true },
+        },
+        tags: {
+          select: { name: true, slug: true },
+          orderBy: { name: "asc" },
         },
         _count: { select: { comments: true } },
       },
@@ -88,29 +93,52 @@ export async function PATCH(request: Request, { params }: PostRouteContext) {
       return NextResponse.json({ error: "Post not found." }, { status: 404 });
     }
 
-    const { status, ...postFields } = parsed.data;
-    const post = await prisma.post.update({
-      where: { id: existingPost.id },
-      data: {
-        ...postFields,
-        ...(status !== undefined && {
-          status,
-          publishedAt:
-            status === "published"
-              ? existingPost.status === "published"
-                ? (existingPost.publishedAt ?? new Date())
-                : new Date()
-              : null,
-        }),
-      },
-      select: {
-        id: true,
-        title: true,
-        content: true,
-        slug: true,
-        status: true,
-        updatedAt: true,
-      },
+    const { status, tags, ...postFields } = parsed.data;
+    const post = await prisma.$transaction(async (transaction) => {
+      const tagRecords =
+        tags === undefined
+          ? undefined
+          : await Promise.all(
+              normalizeTags(tags).map(({ name, slug }) =>
+                transaction.tag.upsert({
+                  where: { slug },
+                  update: {},
+                  create: { name, slug },
+                  select: { id: true },
+                })
+              )
+            );
+
+      return transaction.post.update({
+        where: { id: existingPost.id },
+        data: {
+          ...postFields,
+          ...(tagRecords !== undefined && {
+            tags: { set: tagRecords.map(({ id }) => ({ id })) },
+          }),
+          ...(status !== undefined && {
+            status,
+            publishedAt:
+              status === "published"
+                ? existingPost.status === "published"
+                  ? (existingPost.publishedAt ?? new Date())
+                  : new Date()
+                : null,
+          }),
+        },
+        select: {
+          id: true,
+          title: true,
+          content: true,
+          slug: true,
+          status: true,
+          updatedAt: true,
+          tags: {
+            select: { name: true, slug: true },
+            orderBy: { name: "asc" },
+          },
+        },
+      });
     });
 
     return NextResponse.json({ post });
