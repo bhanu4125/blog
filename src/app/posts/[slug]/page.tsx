@@ -1,10 +1,13 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { getServerSession } from "next-auth";
 import ReactMarkdown from "react-markdown";
 import rehypeHighlight from "rehype-highlight";
 import remarkGfm from "remark-gfm";
 import { CommentsSection } from "@/components/comments/comments-section";
+import { LikeButton } from "@/components/posts/like-button";
 import { Avatar } from "@/components/profile/avatar";
+import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { calculateReadingTime } from "@/lib/reading-time";
 
@@ -17,6 +20,7 @@ type PostPageProps = {
 export const dynamic = "force-dynamic";
 
 export default async function PostPage({ params }: PostPageProps) {
+  const session = await getServerSession(authOptions);
   const post = await prisma.post.findFirst({
     where: {
       slug: params.slug,
@@ -24,6 +28,7 @@ export default async function PostPage({ params }: PostPageProps) {
       publishedAt: { not: null },
     },
     select: {
+      id: true,
       title: true,
       content: true,
       publishedAt: true,
@@ -34,6 +39,7 @@ export default async function PostPage({ params }: PostPageProps) {
         select: { name: true, slug: true },
         orderBy: { name: "asc" },
       },
+      _count: { select: { likes: true } },
     },
   });
 
@@ -49,6 +55,17 @@ export default async function PostPage({ params }: PostPageProps) {
       }).format(post.publishedAt)
     : "Recently published";
   const readingTime = calculateReadingTime(post.content);
+  const existingLike = session?.user?.id
+    ? await prisma.like.findUnique({
+        where: {
+          userId_postId: {
+            userId: session.user.id,
+            postId: post.id,
+          },
+        },
+        select: { id: true },
+      })
+    : null;
 
   return (
     <main className="mx-auto w-full max-w-3xl flex-1 px-6 py-10 md:py-16">
@@ -122,6 +139,11 @@ export default async function PostPage({ params }: PostPageProps) {
             {post.content}
           </ReactMarkdown>
         </div>
+        <LikeButton
+          postSlug={params.slug}
+          initialCount={post._count.likes}
+          initialIsLiked={Boolean(existingLike)}
+        />
       </article>
       <section
         id="comments"
