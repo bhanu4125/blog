@@ -12,6 +12,14 @@
   --accent: #4f46e5;
 }
 
+.theme-transitioning,
+.theme-transitioning * {
+  transition:
+    background-color 200ms ease,
+    border-color 200ms ease,
+    color 200ms ease;
+}
+
 .dark {
   color-scheme: dark;
   --background: #0c1020;

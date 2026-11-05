@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { motion, useScroll, useTransform } from "framer-motion";
+import { ThemeToggle } from "@/components/ui/theme-toggle";
 
 export function Navbar() {
   const { scrollY } = useScroll();
@@ -23,13 +24,16 @@ export function Navbar() {
         >
           Blog<span className="text-brand-600">.</span>
         </Link>
-        <Link
-          href="/"
-          aria-current="page"
-          className="rounded-lg px-3 py-2 text-sm font-medium text-muted outline-none transition-colors hover:text-foreground focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2"
-        >
-          Home
-        </Link>
+        <div className="flex items-center gap-3">
+          <Link
+            href="/"
+            aria-current="page"
+            className="rounded-lg px-3 py-2 text-sm font-medium text-muted outline-none transition-colors hover:text-foreground focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2"
+          >
+            Home
+          </Link>
+          <ThemeToggle />
+        </div>
       </nav>
     </motion.header>
   );
