@@ -12,6 +12,7 @@ type MarkdownAction =
   | "bold"
   | "italic"
   | "link"
+  | "image"
   | "heading"
   | "bullet"
   | "numbered"
@@ -34,6 +35,7 @@ const toolbarActions: {
   { action: "bold", label: "Bold", symbol: "B" },
   { action: "italic", label: "Italic", symbol: "I" },
   { action: "link", label: "Insert link", symbol: "Link" },
+  { action: "image", label: "Insert image URL", symbol: "Image" },
   { action: "heading", label: "Heading", symbol: "H2" },
   { action: "bullet", label: "Bulleted list", symbol: "• List" },
   { action: "numbered", label: "Numbered list", symbol: "1. List" },
@@ -70,7 +72,15 @@ export function MarkdownWorkspace() {
     let nextSelectionStart: number;
     let nextSelectionEnd: number;
 
-    if (wrapper) {
+    if (action === "image") {
+      const altText = selected || "image description";
+      const url = "https://example.com/image.jpg";
+      const insertion = `![${altText}](${url})`;
+      updated =
+        value.slice(0, selectionStart) + insertion + value.slice(selectionEnd);
+      nextSelectionStart = selectionStart + altText.length + 4;
+      nextSelectionEnd = nextSelectionStart + url.length;
+    } else if (wrapper) {
       const text = selected || wrapper.placeholder;
       const prefix = wrapper.prefix;
       const suffix = wrapper.suffix;
