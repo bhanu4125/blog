@@ -4,6 +4,7 @@ import ReactMarkdown from "react-markdown";
 import rehypeHighlight from "rehype-highlight";
 import remarkGfm from "remark-gfm";
 import { CommentForm } from "@/components/comments/comment-form";
+import { CommentList } from "@/components/comments/comment-list";
 import { prisma } from "@/lib/prisma";
 import { calculateReadingTime } from "@/lib/reading-time";
 
@@ -112,6 +113,12 @@ export default async function PostPage({ params }: PostPageProps) {
           Join the conversation
         </h2>
         <CommentForm postSlug={params.slug} />
+        <div className="mt-10">
+          <h3 className="mb-5 text-lg font-semibold text-foreground">
+            Comments
+          </h3>
+          <CommentList postSlug={params.slug} />
+        </div>
       </section>
     </main>
   );
