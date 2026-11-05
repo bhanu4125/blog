@@ -31,7 +31,7 @@ export function PostCard({ post }: PostCardProps) {
   return (
     <Link
       href={`/posts/${post.slug}`}
-      aria-label={`Read ${post.title} by ${post.author.name}`}
+      aria-label={`Read ${post.title} by ${post.author.name}; ${post._count.comments} ${post._count.comments === 1 ? "comment" : "comments"}`}
       className="group block rounded-2xl outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-4"
     >
       <Card className="h-full overflow-hidden p-6 transition-colors group-hover:border-brand-200 group-focus-visible:border-brand-300 dark:group-hover:border-brand-800">
@@ -70,7 +70,7 @@ export function PostCard({ post }: PostCardProps) {
           )}
 
           <div className="mt-auto flex items-center justify-between pt-6 text-xs text-muted">
-            <span>
+            <span className="inline-flex items-center rounded-full border border-brand-200 bg-brand-50 px-3 py-1 font-medium text-brand-700 dark:border-brand-800 dark:bg-brand-950 dark:text-brand-200">
               {post._count.comments}{" "}
               {post._count.comments === 1 ? "comment" : "comments"}
             </span>
