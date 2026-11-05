@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { PostList } from "@/components/posts/post-list";
+import { InfinitePostFeed } from "@/components/posts/infinite-post-feed";
 import { EmptyState } from "@/components/ui/empty-state";
 import { SearchBar } from "@/components/search/search-bar";
 import { POSTS_PER_PAGE } from "@/lib/constants";
@@ -8,24 +8,28 @@ import { prisma } from "@/lib/prisma";
 export const dynamic = "force-dynamic";
 
 export default async function HomePage() {
-  const posts = await prisma.post.findMany({
-    where: {
-      status: "published",
-      publishedAt: { not: null },
-    },
-    orderBy: [{ publishedAt: "desc" }, { createdAt: "desc" }],
-    take: POSTS_PER_PAGE,
-    select: {
-      title: true,
-      slug: true,
-      excerpt: true,
-      publishedAt: true,
-      author: {
-        select: { name: true, imageUrl: true },
+  const where = {
+    status: "published",
+    publishedAt: { not: null },
+  };
+  const [posts, totalPosts] = await prisma.$transaction([
+    prisma.post.findMany({
+      where,
+      orderBy: [{ publishedAt: "desc" }, { createdAt: "desc" }],
+      take: POSTS_PER_PAGE,
+      select: {
+        title: true,
+        slug: true,
+        excerpt: true,
+        publishedAt: true,
+        author: {
+          select: { name: true, imageUrl: true },
+        },
+        _count: { select: { comments: true } },
       },
-      _count: { select: { comments: true } },
-    },
-  });
+    }),
+    prisma.post.count({ where }),
+  ]);
 
   return (
     <main className="mx-auto w-full max-w-6xl flex-1 px-6 py-12 md:py-16">
@@ -58,7 +62,10 @@ export default async function HomePage() {
 
         <div className="mt-12">
           {posts.length > 0 ? (
-            <PostList posts={posts} />
+            <InfinitePostFeed
+              initialPosts={posts}
+              initialHasNextPage={posts.length < totalPosts}
+            />
           ) : (
             <EmptyState
               title="The first story is waiting to be written."
