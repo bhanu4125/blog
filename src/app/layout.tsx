@@ -3,6 +3,7 @@ import localFont from "next/font/local";
 import { Navbar } from "@/components/layout/navbar";
 import { Footer } from "@/components/layout/footer";
 import { PageTransition } from "@/components/layout/page-transition";
+import { MotionProvider } from "@/components/animation/motion-provider";
 import { SessionProvider } from "@/components/layout/session-provider";
 import { ThemeProvider } from "@/components/layout/theme-provider";
 import { ToastProvider } from "@/components/ui/toast-provider";
@@ -37,15 +38,17 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} flex min-h-screen flex-col antialiased`}
       >
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
-          <SessionProvider>
-            <ToastProvider>
-              <Navbar />
-              <div className="flex min-h-[calc(100vh-4rem)] flex-1 flex-col">
-                <PageTransition>{children}</PageTransition>
-                <Footer />
-              </div>
-            </ToastProvider>
-          </SessionProvider>
+          <MotionProvider>
+            <SessionProvider>
+              <ToastProvider>
+                <Navbar />
+                <div className="flex min-h-[calc(100vh-4rem)] flex-1 flex-col">
+                  <PageTransition>{children}</PageTransition>
+                  <Footer />
+                </div>
+              </ToastProvider>
+            </SessionProvider>
+          </MotionProvider>
         </ThemeProvider>
       </body>
     </html>
