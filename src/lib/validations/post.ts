@@ -17,10 +17,33 @@ export const createPostSchema = z.object({
     .max(100_000, "Post content is too long."),
 });
 
+export const updatePostSchema = z
+  .object({
+    title: z
+      .string()
+      .trim()
+      .min(1, "A post title is required.")
+      .max(
+        POST_TITLE_MAX_LENGTH,
+        `Title must be ${POST_TITLE_MAX_LENGTH} characters or fewer.`
+      )
+      .optional(),
+    content: z
+      .string()
+      .trim()
+      .min(1, "Post content is required.")
+      .max(100_000, "Post content is too long.")
+      .optional(),
+  })
+  .refine((value) => value.title !== undefined || value.content !== undefined, {
+    message: "Provide a title or content to update.",
+  });
+
 export const paginationSchema = z.object({
   page: z.coerce.number().int().min(1).max(1_000_000).default(1),
   limit: z.coerce.number().int().min(1).max(50).default(POSTS_PER_PAGE),
 });
 
 export type CreatePostInput = z.infer<typeof createPostSchema>;
+export type UpdatePostInput = z.infer<typeof updatePostSchema>;
 export type PaginationInput = z.infer<typeof paginationSchema>;

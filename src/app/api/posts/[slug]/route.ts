@@ -1,5 +1,8 @@
+import { getServerSession } from "next-auth";
 import { NextResponse } from "next/server";
+import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { updatePostSchema } from "@/lib/validations/post";
 
 type PostRouteContext = {
   params: {
@@ -40,6 +43,75 @@ export async function GET(_request: Request, { params }: PostRouteContext) {
     console.error("Post lookup failed:", error);
     return NextResponse.json(
       { error: "Unable to load the post right now." },
+      { status: 500 }
+    );
+  }
+}
+
+export async function PATCH(request: Request, { params }: PostRouteContext) {
+  const session = await getServerSession(authOptions);
+  if (!session?.user?.id) {
+    return NextResponse.json(
+      { error: "Authentication required." },
+      { status: 401 }
+    );
+  }
+
+  let payload: unknown;
+  try {
+    payload = await request.json();
+  } catch {
+    return NextResponse.json(
+      { error: "Request body must be valid JSON." },
+      { status: 400 }
+    );
+  }
+
+  const parsed = updatePostSchema.safeParse(payload);
+  if (!parsed.success) {
+    return NextResponse.json(
+      {
+        error: parsed.error.issues[0]?.message ?? "Invalid post details.",
+      },
+      { status: 400 }
+    );
+  }
+
+  try {
+    const existingPost = await prisma.post.findUnique({
+      where: { slug: params.slug },
+      select: { id: true, authorId: true },
+    });
+
+    if (!existingPost) {
+      return NextResponse.json({ error: "Post not found." }, { status: 404 });
+    }
+
+    if (existingPost.authorId !== session.user.id) {
+      return NextResponse.json(
+        { error: "You can only update your own posts." },
+        { status: 403 }
+      );
+    }
+
+    const post = await prisma.post.update({
+      where: { id: existingPost.id },
+      data: parsed.data,
+      select: {
+        id: true,
+        title: true,
+        content: true,
+        slug: true,
+        status: true,
+        updatedAt: true,
+      },
+    });
+
+    return NextResponse.json({ post });
+  } catch (error) {
+    console.error("Post update failed:", error);
+    return NextResponse.json(
+      { error: "Unable to update the post right now." },
       { status: 500 }
     );
   }
