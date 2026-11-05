@@ -84,6 +84,16 @@ function isSavedDraft(value: unknown): value is SavedDraft {
   );
 }
 
+function getEditorSnapshot(values: {
+  title: string;
+  content: string;
+  coverImageUrl: string;
+  tags: string;
+  status: PostStatus;
+}) {
+  return JSON.stringify(values);
+}
+
 export function MarkdownWorkspace({
   initialPost,
 }: {
@@ -108,11 +118,28 @@ export function MarkdownWorkspace({
   >("ready");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const savedSnapshotRef = useRef(
+    getEditorSnapshot({
+      title: initialPost?.title ?? "",
+      content: initialPost?.content ?? "",
+      coverImageUrl: initialPost?.coverImageUrl ?? "",
+      tags: "",
+      status: initialPost?.status ?? "draft",
+    })
+  );
   const { addToast } = useToast();
   const router = useRouter();
   const draftStorageKey = initialPost
     ? `${DRAFT_STORAGE_KEY}:${initialPost.slug}`
     : DRAFT_STORAGE_KEY;
+  const currentSnapshot = getEditorSnapshot({
+    title,
+    content,
+    coverImageUrl,
+    tags,
+    status,
+  });
+  const hasUnsavedChanges = currentSnapshot !== savedSnapshotRef.current;
 
   useEffect(() => {
     try {
@@ -185,6 +212,61 @@ export function MarkdownWorkspace({
     title,
   ]);
 
+  useEffect(() => {
+    if (!hasUnsavedChanges) return;
+
+    function warnBeforeUnload(event: BeforeUnloadEvent) {
+      event.preventDefault();
+      event.returnValue = "";
+    }
+
+    function confirmInternalNavigation(event: MouseEvent) {
+      if (
+        event.defaultPrevented ||
+        event.button !== 0 ||
+        event.metaKey ||
+        event.ctrlKey ||
+        event.shiftKey ||
+        event.altKey ||
+        !(event.target instanceof Element)
+      ) {
+        return;
+      }
+
+      const link = event.target.closest("a");
+      if (!link || link.hasAttribute("download")) return;
+      if (link.target && link.target !== "_self") return;
+
+      const destination = new URL(link.href, window.location.href);
+      if (destination.origin !== window.location.origin) return;
+
+      const current = new URL(window.location.href);
+      if (
+        destination.pathname === current.pathname &&
+        destination.search === current.search
+      ) {
+        return;
+      }
+
+      if (
+        !window.confirm(
+          "You have changes that haven't been saved to the post. Leave this page?"
+        )
+      ) {
+        event.preventDefault();
+        event.stopImmediatePropagation();
+      }
+    }
+
+    window.addEventListener("beforeunload", warnBeforeUnload);
+    document.addEventListener("click", confirmInternalNavigation, true);
+
+    return () => {
+      window.removeEventListener("beforeunload", warnBeforeUnload);
+      document.removeEventListener("click", confirmInternalNavigation, true);
+    };
+  }, [hasUnsavedChanges]);
+
   async function handleSavePost() {
     setIsSubmitting(true);
     try {
@@ -229,6 +311,7 @@ export function MarkdownWorkspace({
       }
 
       setSavedSlug(result.post.slug);
+      savedSnapshotRef.current = currentSnapshot;
       if (status === "published") {
         addToast("Your post is published.", "success");
         router.push(`/posts/${result.post.slug}`);
