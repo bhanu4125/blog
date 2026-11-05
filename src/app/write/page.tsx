@@ -1,5 +1,4 @@
-import { MarkdownTextarea } from "@/components/editor/markdown-textarea";
-import { Input } from "@/components/ui/input";
+import { MarkdownWorkspace } from "@/components/editor/markdown-workspace";
 
 export default function WritePage() {
   return (
@@ -18,58 +17,7 @@ export default function WritePage() {
         </p>
       </header>
 
-      <div className="grid gap-6 lg:grid-cols-2">
-        <section
-          aria-labelledby="writing-heading"
-          className="min-w-0 rounded-2xl border border-border bg-background p-5 shadow-sm sm:p-7"
-        >
-          <h2 id="writing-heading" className="sr-only">
-            Write your post
-          </h2>
-          <label
-            htmlFor="post-title"
-            className="mb-2 block text-sm font-medium text-foreground"
-          >
-            Title
-          </label>
-          <Input
-            id="post-title"
-            name="title"
-            placeholder="Give your story a title"
-            maxLength={120}
-          />
-          <label
-            htmlFor="post-content"
-            className="mb-2 mt-6 block text-sm font-medium text-foreground"
-          >
-            Story
-          </label>
-          <MarkdownTextarea
-            id="post-content"
-            name="content"
-            placeholder="Start writing your story…"
-            aria-describedby="markdown-help"
-          />
-          <p id="markdown-help" className="mt-2 text-xs text-muted">
-            Markdown formatting is supported.
-          </p>
-        </section>
-
-        <section
-          aria-labelledby="preview-heading"
-          className="min-h-[24rem] rounded-2xl border border-border bg-surface p-5 sm:p-7"
-        >
-          <h2
-            id="preview-heading"
-            className="text-xs font-semibold uppercase tracking-[0.16em] text-muted"
-          >
-            Preview
-          </h2>
-          <p className="mt-8 text-sm leading-6 text-muted">
-            Your story preview will appear here as you write.
-          </p>
-        </section>
-      </div>
+      <MarkdownWorkspace />
     </main>
   );
 }
