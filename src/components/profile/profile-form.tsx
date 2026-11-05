@@ -6,10 +6,12 @@ import { useSession } from "next-auth/react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/components/ui/toast-provider";
+import { Avatar } from "@/components/profile/avatar";
 
 type ProfileFormProps = {
   initialName: string;
   email: string;
+  initialImageUrl: string | null;
 };
 
 function getErrorMessage(payload: unknown) {
@@ -25,8 +27,13 @@ function getErrorMessage(payload: unknown) {
   return "Unable to update your profile.";
 }
 
-export function ProfileForm({ initialName, email }: ProfileFormProps) {
+export function ProfileForm({
+  initialName,
+  email,
+  initialImageUrl,
+}: ProfileFormProps) {
   const [name, setName] = useState(initialName);
+  const [imageUrl, setImageUrl] = useState(initialImageUrl ?? "");
   const [isSaving, setIsSaving] = useState(false);
   const { update } = useSession();
   const { addToast } = useToast();
@@ -40,7 +47,7 @@ export function ProfileForm({ initialName, email }: ProfileFormProps) {
       const response = await fetch("/api/profile", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name }),
+        body: JSON.stringify({ name, imageUrl: imageUrl.trim() || null }),
       });
       const payload: unknown = await response.json();
 
@@ -65,6 +72,12 @@ export function ProfileForm({ initialName, email }: ProfileFormProps) {
       className="space-y-6 rounded-2xl border border-border bg-background p-6 shadow-sm sm:p-8"
       onSubmit={handleSubmit}
     >
+      <div className="flex items-center gap-4">
+        <Avatar name={name} imageUrl={imageUrl.trim() || null} size="large" />
+        <p className="text-sm text-muted">
+          Use a publicly accessible image URL for your avatar.
+        </p>
+      </div>
       <div>
         <label
           htmlFor="profile-name"
@@ -81,6 +94,27 @@ export function ProfileForm({ initialName, email }: ProfileFormProps) {
           maxLength={80}
           required
         />
+      </div>
+      <div>
+        <label
+          htmlFor="profile-avatar-url"
+          className="mb-2 block text-sm font-medium text-foreground"
+        >
+          Avatar image URL
+        </label>
+        <Input
+          id="profile-avatar-url"
+          name="imageUrl"
+          type="url"
+          value={imageUrl}
+          onChange={(event) => setImageUrl(event.currentTarget.value)}
+          placeholder="https://example.com/avatar.jpg"
+          maxLength={2048}
+          aria-describedby="profile-avatar-help"
+        />
+        <p id="profile-avatar-help" className="mt-2 text-xs text-muted">
+          Leave blank to use your name initial instead.
+        </p>
       </div>
       <div>
         <label

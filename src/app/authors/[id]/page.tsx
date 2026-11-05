@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { PostList } from "@/components/posts/post-list";
+import { Avatar } from "@/components/profile/avatar";
 import { EmptyState } from "@/components/ui/empty-state";
 import { POSTS_PER_PAGE } from "@/lib/constants";
 import { prisma } from "@/lib/prisma";
@@ -49,7 +50,6 @@ export default async function AuthorPage({ params }: AuthorPageProps) {
     ...post,
     author: { name: author.name, imageUrl: author.imageUrl },
   }));
-  const initial = author.name.trim().charAt(0).toUpperCase();
 
   return (
     <main className="mx-auto w-full max-w-6xl flex-1 px-6 py-12 md:py-16">
@@ -64,12 +64,7 @@ export default async function AuthorPage({ params }: AuthorPageProps) {
       </Link>
 
       <header className="mt-10 flex flex-col gap-5 border-b border-border pb-8 sm:flex-row sm:items-center">
-        <span
-          aria-hidden="true"
-          className="flex size-20 shrink-0 items-center justify-center rounded-full bg-brand-100 text-3xl font-bold text-brand-700 dark:bg-brand-900 dark:text-brand-100"
-        >
-          {initial || "A"}
-        </span>
+        <Avatar name={author.name} imageUrl={author.imageUrl} size="large" />
         <div>
           <p className="text-sm font-semibold uppercase tracking-[0.16em] text-brand-600">
             Author

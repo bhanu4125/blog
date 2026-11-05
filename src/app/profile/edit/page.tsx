@@ -14,7 +14,7 @@ export default async function EditProfilePage() {
 
   const user = await prisma.user.findUnique({
     where: { id: session.user.id },
-    select: { name: true, email: true },
+    select: { name: true, email: true, imageUrl: true },
   });
 
   if (!user) {
@@ -31,7 +31,11 @@ export default async function EditProfilePage() {
           Edit your profile
         </h1>
       </header>
-      <ProfileForm initialName={user.name} email={user.email} />
+      <ProfileForm
+        initialName={user.name}
+        email={user.email}
+        initialImageUrl={user.imageUrl}
+      />
     </main>
   );
 }

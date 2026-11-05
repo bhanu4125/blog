@@ -10,6 +10,7 @@ import {
 import { signOut, useSession } from "next-auth/react";
 import { useEffect, useRef, useState } from "react";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
+import { Avatar } from "@/components/profile/avatar";
 
 export function Navbar() {
   const { scrollY } = useScroll();
@@ -92,12 +93,11 @@ export function Navbar() {
                 onClick={() => setIsMenuOpen((open) => !open)}
                 className="inline-flex min-h-10 items-center gap-2 rounded-xl border border-border bg-background px-3 text-sm font-medium text-foreground outline-none transition-colors hover:bg-surface focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2"
               >
-                <span
-                  aria-hidden="true"
-                  className="flex size-7 items-center justify-center rounded-full bg-brand-100 text-xs font-bold text-brand-700 dark:bg-brand-900 dark:text-brand-100"
-                >
-                  {displayName.charAt(0).toUpperCase()}
-                </span>
+                <Avatar
+                  name={displayName}
+                  imageUrl={session.user.image ?? null}
+                  size="small"
+                />
                 <span className="max-w-32 truncate">{displayName}</span>
                 <span aria-hidden="true" className="text-xs text-muted">
                   ▾

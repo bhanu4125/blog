@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Card } from "@/components/ui/card";
+import { Avatar } from "@/components/profile/avatar";
 
 export type PostCardData = {
   title: string;
@@ -37,12 +38,11 @@ export function PostCard({ post }: PostCardProps) {
       <Card className="h-full overflow-hidden p-6 transition-colors group-hover:border-brand-200 group-focus-visible:border-brand-300 dark:group-hover:border-brand-800">
         <article className="flex h-full flex-col">
           <div className="flex items-center gap-3">
-            <span
-              aria-hidden="true"
-              className="flex size-10 shrink-0 items-center justify-center rounded-full bg-brand-100 text-sm font-bold text-brand-700 dark:bg-brand-900 dark:text-brand-100"
-            >
-              {post.author.name.trim().charAt(0).toUpperCase() || "A"}
-            </span>
+            <Avatar
+              name={post.author.name}
+              imageUrl={post.author.imageUrl}
+              size="medium"
+            />
             <div className="min-w-0">
               <p className="truncate text-sm font-semibold text-foreground">
                 {post.author.name}

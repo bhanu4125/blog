@@ -12,6 +12,7 @@ import { useSession } from "next-auth/react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/input";
 import { useToast } from "@/components/ui/toast-provider";
+import { Avatar } from "@/components/profile/avatar";
 import {
   getCommentErrorMessage,
   readCreatedComment,
@@ -47,12 +48,11 @@ function CommentContent({
 
   return (
     <article className="flex items-start gap-3">
-      <span
-        aria-hidden="true"
-        className="flex size-10 shrink-0 items-center justify-center rounded-full bg-brand-100 text-sm font-bold text-brand-700 dark:bg-brand-900 dark:text-brand-100"
-      >
-        {initial || "A"}
-      </span>
+      <Avatar
+        name={comment.author.name || initial}
+        imageUrl={comment.author.imageUrl}
+        size="medium"
+      />
       <div className="min-w-0 flex-1">
         <header className="mb-2 flex flex-wrap items-baseline gap-x-3 gap-y-1">
           <h3 className="text-sm font-semibold text-foreground">

@@ -4,6 +4,7 @@ import ReactMarkdown from "react-markdown";
 import rehypeHighlight from "rehype-highlight";
 import remarkGfm from "remark-gfm";
 import { CommentsSection } from "@/components/comments/comments-section";
+import { Avatar } from "@/components/profile/avatar";
 import { prisma } from "@/lib/prisma";
 import { calculateReadingTime } from "@/lib/reading-time";
 
@@ -27,7 +28,7 @@ export default async function PostPage({ params }: PostPageProps) {
       content: true,
       publishedAt: true,
       author: {
-        select: { id: true, name: true },
+        select: { id: true, name: true, imageUrl: true },
       },
     },
   });
@@ -66,12 +67,11 @@ export default async function PostPage({ params }: PostPageProps) {
             {post.title}
           </h1>
           <div className="mt-6 flex items-center gap-3">
-            <span
-              aria-hidden="true"
-              className="flex size-10 items-center justify-center rounded-full bg-brand-100 text-sm font-bold text-brand-700 dark:bg-brand-900 dark:text-brand-100"
-            >
-              {post.author.name.trim().charAt(0).toUpperCase() || "A"}
-            </span>
+            <Avatar
+              name={post.author.name}
+              imageUrl={post.author.imageUrl}
+              size="medium"
+            />
             <div>
               <p className="text-sm font-semibold text-foreground">
                 <Link
