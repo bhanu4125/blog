@@ -4,7 +4,74 @@ import { NextResponse } from "next/server";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { slugify } from "@/lib/slug";
-import { createPostSchema } from "@/lib/validations/post";
+import { createPostSchema, paginationSchema } from "@/lib/validations/post";
+
+export async function GET(request: Request) {
+  const url = new URL(request.url);
+  const parsed = paginationSchema.safeParse({
+    page: url.searchParams.get("page") ?? undefined,
+    limit: url.searchParams.get("limit") ?? undefined,
+  });
+
+  if (!parsed.success) {
+    return NextResponse.json(
+      {
+        error:
+          "Page and limit must be positive integers within the supported range.",
+      },
+      { status: 400 }
+    );
+  }
+
+  const { page, limit } = parsed.data;
+  const where = {
+    status: "published",
+    publishedAt: { not: null },
+  };
+
+  try {
+    const [posts, total] = await prisma.$transaction([
+      prisma.post.findMany({
+        where,
+        orderBy: [{ publishedAt: "desc" }, { createdAt: "desc" }],
+        skip: (page - 1) * limit,
+        take: limit,
+        select: {
+          id: true,
+          title: true,
+          slug: true,
+          excerpt: true,
+          coverImageUrl: true,
+          publishedAt: true,
+          author: {
+            select: { id: true, name: true, imageUrl: true },
+          },
+          _count: { select: { comments: true } },
+        },
+      }),
+      prisma.post.count({ where }),
+    ]);
+
+    const totalPages = Math.ceil(total / limit);
+    return NextResponse.json({
+      posts,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages,
+        hasNextPage: page < totalPages,
+        hasPreviousPage: page > 1 && total > 0,
+      },
+    });
+  } catch (error) {
+    console.error("Post listing failed:", error);
+    return NextResponse.json(
+      { error: "Unable to load posts right now." },
+      { status: 500 }
+    );
+  }
+}
 
 export async function POST(request: Request) {
   const session = await getServerSession(authOptions);
