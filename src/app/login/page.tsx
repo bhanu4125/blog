@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { loginSchema } from "@/lib/validations/auth";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -18,13 +19,22 @@ export default function LoginPage() {
     setIsSubmitting(true);
 
     const formData = new FormData(event.currentTarget);
-    const email = String(formData.get("email") ?? "");
-    const password = String(formData.get("password") ?? "");
+    const parsed = loginSchema.safeParse({
+      email: String(formData.get("email") ?? ""),
+      password: String(formData.get("password") ?? ""),
+    });
+
+    if (!parsed.success) {
+      setError(
+        parsed.error.issues[0]?.message ?? "Check your details and retry."
+      );
+      setIsSubmitting(false);
+      return;
+    }
 
     try {
       const result = await signIn("credentials", {
-        email,
-        password,
+        ...parsed.data,
         redirect: false,
       });
 

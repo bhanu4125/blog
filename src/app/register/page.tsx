@@ -3,6 +3,7 @@
 import { useState, type FormEvent } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { registerSchema } from "@/lib/validations/auth";
 
 function getErrorMessage(payload: unknown): string | null {
   if (
@@ -28,17 +29,26 @@ export default function RegisterPage() {
     setIsSubmitting(true);
 
     const formData = new FormData(event.currentTarget);
-    const payload = {
+    const formValues = {
       name: String(formData.get("name") ?? ""),
       email: String(formData.get("email") ?? ""),
       password: String(formData.get("password") ?? ""),
     };
 
+    const parsed = registerSchema.safeParse(formValues);
+    if (!parsed.success) {
+      setError(
+        parsed.error.issues[0]?.message ?? "Check your details and retry."
+      );
+      setIsSubmitting(false);
+      return;
+    }
+
     try {
       const response = await fetch("/api/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
+        body: JSON.stringify(parsed.data),
       });
 
       const result: unknown = await response.json();

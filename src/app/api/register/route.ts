@@ -2,25 +2,7 @@ import { Prisma } from "@prisma/client";
 import { hash } from "bcryptjs";
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-
-type RegistrationBody = {
-  name: string;
-  email: string;
-  password: string;
-};
-
-function isRegistrationBody(value: unknown): value is RegistrationBody {
-  if (typeof value !== "object" || value === null || Array.isArray(value)) {
-    return false;
-  }
-
-  const body = value as Record<string, unknown>;
-  return (
-    typeof body.name === "string" &&
-    typeof body.email === "string" &&
-    typeof body.password === "string"
-  );
-}
+import { registerSchema } from "@/lib/validations/auth";
 
 export async function POST(request: Request) {
   let payload: unknown;
@@ -34,33 +16,18 @@ export async function POST(request: Request) {
     );
   }
 
-  if (!isRegistrationBody(payload)) {
-    return NextResponse.json(
-      { error: "Name, email, and password are required." },
-      { status: 400 }
-    );
-  }
-
-  const name = payload.name.trim();
-  const email = payload.email.trim().toLowerCase();
-  const password = payload.password;
-
-  if (
-    name.length < 1 ||
-    name.length > 80 ||
-    email.length > 254 ||
-    !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) ||
-    password.length < 8 ||
-    Buffer.byteLength(password, "utf8") > 72
-  ) {
+  const parsed = registerSchema.safeParse(payload);
+  if (!parsed.success) {
     return NextResponse.json(
       {
         error:
-          "Provide a name (1–80 characters), a valid email, and a password of 8–72 bytes.",
+          parsed.error.issues[0]?.message ?? "Invalid registration details.",
       },
       { status: 400 }
     );
   }
+
+  const { name, email, password } = parsed.data;
 
   try {
     const passwordHash = await hash(password, 12);
