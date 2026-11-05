@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { HeroSection } from "@/components/home/hero-section";
+import { ScrollReveal } from "@/components/animation/scroll-reveal";
 import { InfinitePostFeed } from "@/components/posts/infinite-post-feed";
 import { EmptyState } from "@/components/ui/empty-state";
 import { SearchBar } from "@/components/search/search-bar";
@@ -39,7 +40,7 @@ export default async function HomePage() {
 
         <SearchBar />
 
-        <div className="mt-12">
+        <ScrollReveal className="mt-12">
           {posts.length > 0 ? (
             <InfinitePostFeed
               initialPosts={posts}
@@ -59,7 +60,7 @@ export default async function HomePage() {
               }
             />
           )}
-        </div>
+        </ScrollReveal>
       </section>
     </main>
   );

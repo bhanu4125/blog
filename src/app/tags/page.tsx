@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { ScrollReveal } from "@/components/animation/scroll-reveal";
 import { EmptyState } from "@/components/ui/empty-state";
 import { prisma } from "@/lib/prisma";
 
@@ -46,24 +47,26 @@ export default async function TagsPage() {
       </header>
 
       {tags.length > 0 ? (
-        <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {tags.map((tag) => (
-            <li key={tag.slug}>
-              <Link
-                href={`/tags/${tag.slug}`}
-                className="group flex h-full items-center justify-between rounded-2xl border border-border bg-background p-5 outline-none transition-colors hover:border-brand-300 hover:bg-surface focus-visible:ring-2 focus-visible:ring-brand-500"
-              >
-                <span className="font-semibold text-foreground group-hover:text-brand-700 dark:group-hover:text-brand-300">
-                  {tag.name}
-                </span>
-                <span className="text-sm text-muted">
-                  {tag._count.posts}{" "}
-                  {tag._count.posts === 1 ? "story" : "stories"}
-                </span>
-              </Link>
-            </li>
-          ))}
-        </ul>
+        <ScrollReveal>
+          <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {tags.map((tag) => (
+              <li key={tag.slug}>
+                <Link
+                  href={`/tags/${tag.slug}`}
+                  className="group flex h-full items-center justify-between rounded-2xl border border-border bg-background p-5 outline-none transition-colors hover:border-brand-300 hover:bg-surface focus-visible:ring-2 focus-visible:ring-brand-500"
+                >
+                  <span className="font-semibold text-foreground group-hover:text-brand-700 dark:group-hover:text-brand-300">
+                    {tag.name}
+                  </span>
+                  <span className="text-sm text-muted">
+                    {tag._count.posts}{" "}
+                    {tag._count.posts === 1 ? "story" : "stories"}
+                  </span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </ScrollReveal>
       ) : (
         <EmptyState
           title="No topics yet."

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { ScrollReveal } from "@/components/animation/scroll-reveal";
 import { PostList } from "@/components/posts/post-list";
 import { EmptyState } from "@/components/ui/empty-state";
 import { authOptions } from "@/lib/auth";
@@ -51,7 +52,9 @@ export default async function BookmarksPage() {
         </h1>
       </header>
       {posts.length > 0 ? (
-        <PostList posts={posts} />
+        <ScrollReveal>
+          <PostList posts={posts} />
+        </ScrollReveal>
       ) : (
         <EmptyState
           title="No saved stories yet."

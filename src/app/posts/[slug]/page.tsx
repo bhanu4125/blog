@@ -5,6 +5,7 @@ import ReactMarkdown from "react-markdown";
 import rehypeHighlight from "rehype-highlight";
 import remarkGfm from "remark-gfm";
 import { CommentsSection } from "@/components/comments/comments-section";
+import { ScrollReveal } from "@/components/animation/scroll-reveal";
 import { BookmarkButton } from "@/components/posts/bookmark-button";
 import { LikeButton } from "@/components/posts/like-button";
 import { PostList } from "@/components/posts/post-list";
@@ -196,32 +197,29 @@ export default async function PostPage({ params }: PostPageProps) {
           </div>
         </article>
         {relatedPosts.length > 0 && (
-          <section
-            aria-labelledby="related-heading"
-            className="mt-12 border-t border-border pt-8"
-          >
+          <ScrollReveal className="mt-12 border-t border-border pt-8">
+            <section aria-labelledby="related-heading">
+              <h2
+                id="related-heading"
+                className="mb-5 text-2xl font-bold tracking-tight text-foreground"
+              >
+                More stories you might like
+              </h2>
+              <PostList posts={relatedPosts} />
+            </section>
+          </ScrollReveal>
+        )}
+        <ScrollReveal className="mt-8 border-t border-border pt-8">
+          <section id="comments" aria-labelledby="comments-heading">
             <h2
-              id="related-heading"
+              id="comments-heading"
               className="mb-5 text-2xl font-bold tracking-tight text-foreground"
             >
-              More stories you might like
+              Join the conversation
             </h2>
-            <PostList posts={relatedPosts} />
+            <CommentsSection postSlug={params.slug} />
           </section>
-        )}
-        <section
-          id="comments"
-          aria-labelledby="comments-heading"
-          className="border-t border-border pt-8"
-        >
-          <h2
-            id="comments-heading"
-            className="mb-5 text-2xl font-bold tracking-tight text-foreground"
-          >
-            Join the conversation
-          </h2>
-          <CommentsSection postSlug={params.slug} />
-        </section>
+        </ScrollReveal>
       </main>
     </>
   );
