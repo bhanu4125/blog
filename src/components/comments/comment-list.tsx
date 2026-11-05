@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { motion } from "framer-motion";
 
 type CommentAuthor = {
   id: string;
@@ -131,11 +132,17 @@ export function CommentList({ postSlug }: CommentListProps) {
 
   return (
     <ol className="divide-y divide-border">
-      {comments.map((comment) => {
+      {comments.map((comment, index) => {
         const initial = comment.author.name.trim().charAt(0).toUpperCase();
 
         return (
-          <li key={comment.id} className="py-5 first:pt-0 last:pb-0">
+          <motion.li
+            key={comment.id}
+            className="py-5 first:pt-0 last:pb-0"
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.2, delay: Math.min(index * 0.04, 0.24) }}
+          >
             <article className="flex items-start gap-3">
               <span
                 aria-hidden="true"
@@ -163,7 +170,7 @@ export function CommentList({ postSlug }: CommentListProps) {
                 </p>
               </div>
             </article>
-          </li>
+          </motion.li>
         );
       })}
     </ol>
