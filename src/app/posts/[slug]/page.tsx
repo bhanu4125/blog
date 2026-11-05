@@ -5,6 +5,7 @@ import ReactMarkdown from "react-markdown";
 import rehypeHighlight from "rehype-highlight";
 import remarkGfm from "remark-gfm";
 import { CommentsSection } from "@/components/comments/comments-section";
+import { BookmarkButton } from "@/components/posts/bookmark-button";
 import { LikeButton } from "@/components/posts/like-button";
 import { Avatar } from "@/components/profile/avatar";
 import { authOptions } from "@/lib/auth";
@@ -57,6 +58,17 @@ export default async function PostPage({ params }: PostPageProps) {
   const readingTime = calculateReadingTime(post.content);
   const existingLike = session?.user?.id
     ? await prisma.like.findUnique({
+        where: {
+          userId_postId: {
+            userId: session.user.id,
+            postId: post.id,
+          },
+        },
+        select: { id: true },
+      })
+    : null;
+  const existingBookmark = session?.user?.id
+    ? await prisma.bookmark.findUnique({
         where: {
           userId_postId: {
             userId: session.user.id,
@@ -139,11 +151,17 @@ export default async function PostPage({ params }: PostPageProps) {
             {post.content}
           </ReactMarkdown>
         </div>
-        <LikeButton
-          postSlug={params.slug}
-          initialCount={post._count.likes}
-          initialIsLiked={Boolean(existingLike)}
-        />
+        <div className="mt-6 flex flex-wrap items-center gap-3">
+          <LikeButton
+            postSlug={params.slug}
+            initialCount={post._count.likes}
+            initialIsLiked={Boolean(existingLike)}
+          />
+          <BookmarkButton
+            postSlug={params.slug}
+            initialIsBookmarked={Boolean(existingBookmark)}
+          />
+        </div>
       </article>
       <section
         id="comments"

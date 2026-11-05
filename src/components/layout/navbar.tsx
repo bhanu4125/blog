@@ -140,6 +140,14 @@ export function Navbar() {
                       Your stories
                     </Link>
                     <Link
+                      href="/bookmarks"
+                      role="menuitem"
+                      onClick={() => setIsMenuOpen(false)}
+                      className="flex w-full rounded-lg px-3 py-2 text-left text-sm text-foreground outline-none transition-colors hover:bg-surface focus-visible:ring-2 focus-visible:ring-brand-500"
+                    >
+                      Saved stories
+                    </Link>
+                    <Link
                       href="/profile/edit"
                       role="menuitem"
                       onClick={() => setIsMenuOpen(false)}
