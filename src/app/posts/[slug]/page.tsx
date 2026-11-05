@@ -7,6 +7,7 @@ import remarkGfm from "remark-gfm";
 import { CommentsSection } from "@/components/comments/comments-section";
 import { BookmarkButton } from "@/components/posts/bookmark-button";
 import { LikeButton } from "@/components/posts/like-button";
+import { PostList } from "@/components/posts/post-list";
 import { ShareButton } from "@/components/posts/share-button";
 import { Avatar } from "@/components/profile/avatar";
 import { authOptions } from "@/lib/auth";
@@ -57,28 +58,52 @@ export default async function PostPage({ params }: PostPageProps) {
       }).format(post.publishedAt)
     : "Recently published";
   const readingTime = calculateReadingTime(post.content);
-  const existingLike = session?.user?.id
-    ? await prisma.like.findUnique({
-        where: {
-          userId_postId: {
-            userId: session.user.id,
-            postId: post.id,
+  const [existingLike, existingBookmark, relatedPosts] = await Promise.all([
+    session?.user?.id
+      ? prisma.like.findUnique({
+          where: {
+            userId_postId: {
+              userId: session.user.id,
+              postId: post.id,
+            },
           },
-        },
-        select: { id: true },
-      })
-    : null;
-  const existingBookmark = session?.user?.id
-    ? await prisma.bookmark.findUnique({
-        where: {
-          userId_postId: {
-            userId: session.user.id,
-            postId: post.id,
+          select: { id: true },
+        })
+      : Promise.resolve(null),
+    session?.user?.id
+      ? prisma.bookmark.findUnique({
+          where: {
+            userId_postId: {
+              userId: session.user.id,
+              postId: post.id,
+            },
           },
-        },
-        select: { id: true },
-      })
-    : null;
+          select: { id: true },
+        })
+      : Promise.resolve(null),
+    post.tags.length > 0
+      ? prisma.post.findMany({
+          where: {
+            slug: { not: params.slug },
+            status: "published",
+            publishedAt: { not: null },
+            tags: { some: { slug: { in: post.tags.map((tag) => tag.slug) } } },
+          },
+          orderBy: [{ publishedAt: "desc" }, { createdAt: "desc" }],
+          take: 3,
+          select: {
+            title: true,
+            slug: true,
+            excerpt: true,
+            publishedAt: true,
+            author: {
+              select: { name: true, imageUrl: true },
+            },
+            _count: { select: { comments: true } },
+          },
+        })
+      : Promise.resolve([]),
+  ]);
 
   return (
     <main className="mx-auto w-full max-w-3xl flex-1 px-6 py-10 md:py-16">
@@ -165,6 +190,20 @@ export default async function PostPage({ params }: PostPageProps) {
           <ShareButton title={post.title} />
         </div>
       </article>
+      {relatedPosts.length > 0 && (
+        <section
+          aria-labelledby="related-heading"
+          className="mt-12 border-t border-border pt-8"
+        >
+          <h2
+            id="related-heading"
+            className="mb-5 text-2xl font-bold tracking-tight text-foreground"
+          >
+            More stories you might like
+          </h2>
+          <PostList posts={relatedPosts} />
+        </section>
+      )}
       <section
         id="comments"
         aria-labelledby="comments-heading"
