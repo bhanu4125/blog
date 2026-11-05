@@ -1,6 +1,6 @@
 export default function HomePage() {
   return (
-    <main className="flex min-h-[calc(100vh-4rem)] items-center justify-center bg-background px-6 text-foreground">
+    <main className="flex flex-1 items-center justify-center bg-background px-6 text-foreground">
       <div className="max-w-xl text-center">
         <p className="text-sm font-semibold uppercase tracking-[0.2em] text-brand-600">
           A place for ideas
