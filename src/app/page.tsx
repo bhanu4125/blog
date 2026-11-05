@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { PostCard } from "@/components/posts/post-card";
+import { PostList } from "@/components/posts/post-list";
 import { POSTS_PER_PAGE } from "@/lib/constants";
 import { prisma } from "@/lib/prisma";
 
@@ -54,11 +54,7 @@ export default async function HomePage() {
 
         <div className="mt-12">
           {posts.length > 0 ? (
-            <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-              {posts.map((post) => (
-                <PostCard key={post.slug} post={post} />
-              ))}
-            </div>
+            <PostList posts={posts} />
           ) : (
             <div className="rounded-2xl border border-dashed border-border bg-surface px-6 py-16 text-center">
               <h2 className="text-xl font-semibold text-foreground">
