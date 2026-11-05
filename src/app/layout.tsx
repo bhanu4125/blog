@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import localFont from "next/font/local";
+import { siteConfig } from "@/config/site";
 import "./globals.css";
 
 const geistSans = localFont({
@@ -14,8 +15,9 @@ const geistMono = localFont({
 });
 
 export const metadata: Metadata = {
-  title: "Blog",
-  description: "A place to write, share, and discover stories.",
+  metadataBase: new URL(siteConfig.url),
+  title: siteConfig.name,
+  description: siteConfig.description,
 };
 
 export default function RootLayout({
