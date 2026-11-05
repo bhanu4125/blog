@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import localFont from "next/font/local";
 import { Navbar } from "@/components/layout/navbar";
+import { NavigationProgress } from "@/components/layout/navigation-progress";
 import { Footer } from "@/components/layout/footer";
 import { PageTransition } from "@/components/layout/page-transition";
 import { MotionProvider } from "@/components/animation/motion-provider";
@@ -41,6 +42,7 @@ export default function RootLayout({
           <MotionProvider>
             <SessionProvider>
               <ToastProvider>
+                <NavigationProgress />
                 <Navbar />
                 <div className="flex min-h-[calc(100vh-4rem)] flex-1 flex-col">
                   <PageTransition>{children}</PageTransition>
