@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { PostList } from "@/components/posts/post-list";
 import { EmptyState } from "@/components/ui/empty-state";
+import { SearchBar } from "@/components/search/search-bar";
 import { POSTS_PER_PAGE } from "@/lib/constants";
 import { prisma } from "@/lib/prisma";
 
@@ -52,6 +53,8 @@ export default async function HomePage() {
             Join the community
           </Link>
         </div>
+
+        <SearchBar />
 
         <div className="mt-12">
           {posts.length > 0 ? (
