@@ -102,7 +102,7 @@ export async function POST(request: Request) {
     );
   }
 
-  const { title, content, status } = parsed.data;
+  const { title, content, status, coverImageUrl } = parsed.data;
   const baseSlug = slugify(title);
 
   try {
@@ -120,6 +120,7 @@ export async function POST(request: Request) {
         content,
         slug,
         status,
+        coverImageUrl: coverImageUrl ?? null,
         publishedAt: status === "published" ? new Date() : null,
         authorId: session.user.id,
       },

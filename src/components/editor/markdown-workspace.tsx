@@ -18,6 +18,8 @@ type SavedDraft = {
   content: string;
   status?: PostStatus;
   slug?: string;
+  coverImageUrl?: string;
+  tags?: string;
 };
 
 type PostStatus = "draft" | "published";
@@ -68,13 +70,17 @@ function isSavedDraft(value: unknown): value is SavedDraft {
     (!("status" in value) ||
       value.status === "draft" ||
       value.status === "published") &&
-    (!("slug" in value) || typeof value.slug === "string")
+    (!("slug" in value) || typeof value.slug === "string") &&
+    (!("coverImageUrl" in value) || typeof value.coverImageUrl === "string") &&
+    (!("tags" in value) || typeof value.tags === "string")
   );
 }
 
 export function MarkdownWorkspace() {
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
+  const [coverImageUrl, setCoverImageUrl] = useState("");
+  const [tags, setTags] = useState("");
   const [status, setStatus] = useState<PostStatus>("draft");
   const [savedSlug, setSavedSlug] = useState<string | null>(null);
   const [view, setView] = useState<EditorView>("split");
@@ -97,6 +103,8 @@ export function MarkdownWorkspace() {
         }
         setTitle(draft.title);
         setContent(draft.content);
+        setCoverImageUrl(draft.coverImageUrl ?? "");
+        setTags(draft.tags ?? "");
         setStatus(draft.status ?? "draft");
         setSavedSlug(draft.slug ?? null);
         setSaveStatus("saved");
@@ -115,10 +123,22 @@ export function MarkdownWorkspace() {
     setSaveStatus("saving");
     const timeout = window.setTimeout(() => {
       try {
-        if (title.trim() || content.trim()) {
+        if (
+          title.trim() ||
+          content.trim() ||
+          coverImageUrl.trim() ||
+          tags.trim()
+        ) {
           window.localStorage.setItem(
             DRAFT_STORAGE_KEY,
-            JSON.stringify({ title, content, status, slug: savedSlug })
+            JSON.stringify({
+              title,
+              content,
+              status,
+              slug: savedSlug,
+              coverImageUrl,
+              tags,
+            })
           );
         } else {
           window.localStorage.removeItem(DRAFT_STORAGE_KEY);
@@ -132,7 +152,16 @@ export function MarkdownWorkspace() {
     }, 500);
 
     return () => window.clearTimeout(timeout);
-  }, [addToast, content, draftReady, savedSlug, status, title]);
+  }, [
+    addToast,
+    content,
+    coverImageUrl,
+    draftReady,
+    savedSlug,
+    status,
+    tags,
+    title,
+  ]);
 
   async function handleSavePost() {
     setIsSubmitting(true);
@@ -144,7 +173,12 @@ export function MarkdownWorkspace() {
         {
           method: savedSlug ? "PATCH" : "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ title, content, status }),
+          body: JSON.stringify({
+            title,
+            content,
+            status,
+            coverImageUrl: coverImageUrl.trim() || null,
+          }),
         }
       );
       const result: unknown = await response.json();
@@ -354,6 +388,41 @@ export function MarkdownWorkspace() {
                   placeholder="Give your story a title"
                   maxLength={120}
                 />
+                <label
+                  htmlFor="post-cover-image"
+                  className="mb-2 mt-5 block text-sm font-medium text-foreground"
+                >
+                  Cover image URL
+                </label>
+                <Input
+                  id="post-cover-image"
+                  name="coverImageUrl"
+                  type="url"
+                  value={coverImageUrl}
+                  onChange={(event) =>
+                    setCoverImageUrl(event.currentTarget.value)
+                  }
+                  placeholder="https://example.com/cover.jpg"
+                  maxLength={2048}
+                />
+                <label
+                  htmlFor="post-tags"
+                  className="mb-2 mt-5 block text-sm font-medium text-foreground"
+                >
+                  Tags
+                </label>
+                <Input
+                  id="post-tags"
+                  name="tags"
+                  value={tags}
+                  onChange={(event) => setTags(event.currentTarget.value)}
+                  placeholder="design, writing, ideas"
+                  aria-describedby="post-tags-help"
+                />
+                <p id="post-tags-help" className="mt-1 text-xs text-muted">
+                  Separate tags with commas. Tags are saved with this local
+                  draft.
+                </p>
                 <label
                   htmlFor="post-content"
                   className="mb-2 mt-6 block text-sm font-medium text-foreground"

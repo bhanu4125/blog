@@ -16,6 +16,13 @@ export const createPostSchema = z.object({
     .min(1, "Post content is required.")
     .max(100_000, "Post content is too long."),
   status: z.enum(["draft", "published"]).default("draft"),
+  coverImageUrl: z
+    .string()
+    .trim()
+    .url("Cover image must be a valid URL.")
+    .max(2048, "Cover image URL is too long.")
+    .nullable()
+    .optional(),
 });
 
 export const updatePostSchema = z
@@ -36,14 +43,22 @@ export const updatePostSchema = z
       .max(100_000, "Post content is too long.")
       .optional(),
     status: z.enum(["draft", "published"]).optional(),
+    coverImageUrl: z
+      .string()
+      .trim()
+      .url("Cover image must be a valid URL.")
+      .max(2048, "Cover image URL is too long.")
+      .nullable()
+      .optional(),
   })
   .refine(
     (value) =>
       value.title !== undefined ||
       value.content !== undefined ||
-      value.status !== undefined,
+      value.status !== undefined ||
+      value.coverImageUrl !== undefined,
     {
-      message: "Provide a title, content, or status to update.",
+      message: "Provide a title, content, status, or cover image to update.",
     }
   );
 
