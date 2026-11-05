@@ -1,5 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import { prisma } from "@/lib/prisma";
 import { calculateReadingTime } from "@/lib/reading-time";
 
@@ -87,8 +89,10 @@ export default async function PostPage({ params }: PostPageProps) {
           </div>
         </header>
 
-        <div className="whitespace-pre-wrap break-words py-8 text-base leading-8 text-foreground">
-          {post.content}
+        <div className="markdown-content break-words py-8 text-base leading-8 text-foreground">
+          <ReactMarkdown remarkPlugins={[remarkGfm]}>
+            {post.content}
+          </ReactMarkdown>
         </div>
       </article>
     </main>

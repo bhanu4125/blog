@@ -139,3 +139,27 @@
   text-decoration: underline;
   text-underline-offset: 0.2em;
 }
+
+.markdown-content table {
+  display: block;
+  width: 100%;
+  overflow-x: auto;
+  border-collapse: collapse;
+}
+
+.markdown-content th,
+.markdown-content td {
+  border: 1px solid var(--border);
+  padding: 0.5rem 0.75rem;
+  text-align: left;
+}
+
+.markdown-content th {
+  background-color: var(--surface);
+  font-weight: 600;
+}
+
+.markdown-content input[type="checkbox"] {
+  margin-right: 0.5rem;
+  accent-color: var(--accent);
+}
