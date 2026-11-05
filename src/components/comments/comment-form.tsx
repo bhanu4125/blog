@@ -6,17 +6,30 @@ import { useSession } from "next-auth/react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/input";
 import { useToast } from "@/components/ui/toast-provider";
+import {
+  getCommentErrorMessage,
+  readCreatedComment,
+  type PostComment,
+} from "@/components/comments/types";
 
 type CommentFormProps = {
   postSlug: string;
+  onOptimisticComment: (comment: PostComment) => void;
+  onCommentConfirmed: (temporaryId: string, comment: PostComment) => void;
+  onCommentFailed: (temporaryId: string) => void;
 };
 
 const COMMENT_MAX_LENGTH = 2_000;
 
-export function CommentForm({ postSlug }: CommentFormProps) {
+export function CommentForm({
+  postSlug,
+  onOptimisticComment,
+  onCommentConfirmed,
+  onCommentFailed,
+}: CommentFormProps) {
   const [content, setContent] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const { status } = useSession();
+  const { data: session, status } = useSession();
   const { addToast } = useToast();
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -28,6 +41,19 @@ export function CommentForm({ postSlug }: CommentFormProps) {
     }
 
     setIsSubmitting(true);
+    const temporaryId = crypto.randomUUID();
+    onOptimisticComment({
+      id: temporaryId,
+      content: trimmedContent,
+      createdAt: new Date().toISOString(),
+      author: {
+        id: session?.user.id ?? "",
+        name: session?.user.name ?? "You",
+        imageUrl: session?.user.image ?? null,
+      },
+      pending: true,
+    });
+
     try {
       const response = await fetch(
         `/api/posts/${encodeURIComponent(postSlug)}/comments`,
@@ -40,20 +66,20 @@ export function CommentForm({ postSlug }: CommentFormProps) {
       const result: unknown = await response.json();
 
       if (!response.ok) {
-        const message =
-          typeof result === "object" &&
-          result !== null &&
-          "error" in result &&
-          typeof result.error === "string"
-            ? result.error
-            : "Unable to post your comment.";
+        onCommentFailed(temporaryId);
+        const message = getCommentErrorMessage(
+          result,
+          "Unable to post your comment."
+        );
         addToast(message, "error");
         return;
       }
 
+      onCommentConfirmed(temporaryId, readCreatedComment(result));
       setContent("");
       addToast("Your comment was posted.", "success");
     } catch (error) {
+      onCommentFailed(temporaryId);
       console.error("Could not post the comment.", error);
       addToast("Unable to post your comment right now.", "error");
     } finally {
