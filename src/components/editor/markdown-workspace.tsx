@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import ReactMarkdown from "react-markdown";
+import rehypeHighlight from "rehype-highlight";
 import remarkGfm from "remark-gfm";
 import { MarkdownTextarea } from "@/components/editor/markdown-textarea";
 import { Input } from "@/components/ui/input";
@@ -65,7 +66,12 @@ export function MarkdownWorkspace() {
         <article className="markdown-content mt-8 break-words">
           <h1>{title || "Your story title"}</h1>
           {content ? (
-            <ReactMarkdown remarkPlugins={[remarkGfm]}>{content}</ReactMarkdown>
+            <ReactMarkdown
+              remarkPlugins={[remarkGfm]}
+              rehypePlugins={[rehypeHighlight]}
+            >
+              {content}
+            </ReactMarkdown>
           ) : (
             <p className="text-muted">
               Your formatted story will appear here as you write.
