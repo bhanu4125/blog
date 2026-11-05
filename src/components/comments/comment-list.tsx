@@ -17,6 +17,7 @@ import {
   readCreatedComment,
   type PostComment,
 } from "@/components/comments/types";
+import { formatRelativeTime } from "@/lib/relative-time";
 
 type CommentListProps = {
   postSlug: string;
@@ -63,10 +64,15 @@ function CommentContent({
             </span>
           ) : (
             <time dateTime={comment.createdAt} className="text-xs text-muted">
-              {new Intl.DateTimeFormat("en", {
-                dateStyle: "medium",
-                timeStyle: "short",
-              }).format(new Date(comment.createdAt))}
+              {formatRelativeTime(comment.createdAt)}{" "}
+              <span className="sr-only">
+                (
+                {new Intl.DateTimeFormat("en", {
+                  dateStyle: "medium",
+                  timeStyle: "short",
+                }).format(new Date(comment.createdAt))}
+                )
+              </span>
             </time>
           )}
         </header>
