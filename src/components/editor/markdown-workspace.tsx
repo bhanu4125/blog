@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useRef, useState, type KeyboardEvent } from "react";
 import ReactMarkdown from "react-markdown";
 import rehypeHighlight from "rehype-highlight";
 import remarkGfm from "remark-gfm";
@@ -99,6 +99,21 @@ export function MarkdownWorkspace() {
     });
   }
 
+  function handleEditorKeyDown(event: KeyboardEvent<HTMLTextAreaElement>) {
+    if (!(event.ctrlKey || event.metaKey) || event.altKey) return;
+
+    const shortcuts: Record<string, MarkdownAction> = {
+      b: "bold",
+      i: "italic",
+      k: "link",
+    };
+    const action = shortcuts[event.key.toLowerCase()];
+    if (!action) return;
+
+    event.preventDefault();
+    formatContent(action);
+  }
+
   return (
     <div className="grid gap-6 lg:grid-cols-2">
       <section
@@ -153,11 +168,13 @@ export function MarkdownWorkspace() {
           name="content"
           value={content}
           onChange={(event) => setContent(event.currentTarget.value)}
+          onKeyDown={handleEditorKeyDown}
           placeholder="Start writing your story…"
           aria-describedby="markdown-help"
         />
         <p id="markdown-help" className="mt-2 text-xs text-muted">
-          Markdown formatting is supported.
+          Markdown is supported. Use Ctrl/Cmd+B for bold, Ctrl/Cmd+I for italic,
+          or Ctrl/Cmd+K for a link.
         </p>
       </section>
 
