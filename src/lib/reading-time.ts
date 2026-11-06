@@ -9,3 +9,8 @@ export function calculateReadingTime(content: string): number {
   const wordCount = trimmedContent.split(/\s+/).length;
   return Math.max(1, Math.ceil(wordCount / WORDS_PER_MINUTE));
 }
+
+export function formatReadingTime(minutes: number): string {
+  const mins = Math.max(1, Math.round(minutes));
+  return `${mins} min read`;
+}

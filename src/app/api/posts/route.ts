@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { NextResponse } from "next/server";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { calculateReadingTime } from "@/lib/reading-time";
 import { slugify } from "@/lib/slug";
 import { normalizeTags } from "@/lib/tags";
 import { createPostSchema, paginationSchema } from "@/lib/validations/post";
@@ -42,6 +43,7 @@ export async function GET(request: Request) {
           title: true,
           slug: true,
           excerpt: true,
+          content: true,
           coverImageUrl: true,
           publishedAt: true,
           author: {
@@ -57,9 +59,14 @@ export async function GET(request: Request) {
       prisma.post.count({ where }),
     ]);
 
+    const formattedPosts = posts.map((post) => ({
+      ...post,
+      readingTime: calculateReadingTime(post.content),
+    }));
+
     const totalPages = Math.ceil(total / limit);
     return NextResponse.json({
-      posts,
+      posts: formattedPosts,
       pagination: {
         page,
         limit,

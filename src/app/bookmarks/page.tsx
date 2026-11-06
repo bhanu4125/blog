@@ -5,6 +5,7 @@ import { PostList } from "@/components/posts/post-list";
 import { EmptyState } from "@/components/ui/empty-state";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { calculateReadingTime } from "@/lib/reading-time";
 import { getServerSession } from "next-auth";
 
 export const dynamic = "force-dynamic";
@@ -30,6 +31,7 @@ export default async function BookmarksPage() {
           title: true,
           slug: true,
           excerpt: true,
+          content: true,
           coverImageUrl: true,
           publishedAt: true,
           author: {
@@ -43,7 +45,10 @@ export default async function BookmarksPage() {
       },
     },
   });
-  const posts = bookmarks.map(({ post }) => post);
+  const posts = bookmarks.map(({ post }) => ({
+    ...post,
+    readingTime: calculateReadingTime(post.content),
+  }));
 
   return (
     <main className="mx-auto w-full max-w-6xl flex-1 px-6 py-10 md:py-14">

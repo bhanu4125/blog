@@ -163,6 +163,7 @@ export default async function PostPage({ params }: PostPageProps) {
             title: true,
             slug: true,
             excerpt: true,
+            content: true,
             coverImageUrl: true,
             publishedAt: true,
             author: {
@@ -176,6 +177,11 @@ export default async function PostPage({ params }: PostPageProps) {
         })
       : Promise.resolve([]),
   ]);
+
+  const formattedRelatedPosts = relatedPosts.map((related) => ({
+    ...related,
+    readingTime: calculateReadingTime(related.content),
+  }));
 
   return (
     <>
@@ -287,7 +293,7 @@ export default async function PostPage({ params }: PostPageProps) {
               >
                 More stories you might like
               </h2>
-              <PostList posts={relatedPosts} />
+              <PostList posts={formattedRelatedPosts} />
             </section>
           </ScrollReveal>
         )}

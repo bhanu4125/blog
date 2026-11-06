@@ -5,6 +5,7 @@ import { Avatar } from "@/components/profile/avatar";
 import { EmptyState } from "@/components/ui/empty-state";
 import { POSTS_PER_PAGE } from "@/lib/constants";
 import { prisma } from "@/lib/prisma";
+import { calculateReadingTime } from "@/lib/reading-time";
 
 type AuthorPageProps = {
   params: Promise<{
@@ -47,6 +48,7 @@ export default async function AuthorPage({ params }: AuthorPageProps) {
       title: true,
       slug: true,
       excerpt: true,
+      content: true,
       coverImageUrl: true,
       publishedAt: true,
       tags: {
@@ -62,6 +64,7 @@ export default async function AuthorPage({ params }: AuthorPageProps) {
       name: author.name,
       imageUrl: author.imageUrl,
     },
+    readingTime: calculateReadingTime(post.content),
   }));
 
   const joinedDate = new Intl.DateTimeFormat("en-US", {

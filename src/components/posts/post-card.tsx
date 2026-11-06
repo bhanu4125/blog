@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Avatar } from "@/components/profile/avatar";
+import { calculateReadingTime, formatReadingTime } from "@/lib/reading-time";
 
 export type PostCardData = {
   title: string;
@@ -7,6 +8,8 @@ export type PostCardData = {
   excerpt: string | null;
   coverImageUrl?: string | null;
   publishedAt: Date | string | null;
+  readingTime?: number;
+  content?: string;
   author: {
     name: string;
     imageUrl: string | null;
@@ -34,10 +37,25 @@ export function PostCard({ post }: PostCardProps) {
       }).format(new Date(post.publishedAt))
     : "Recently published";
 
+  const readingMinutes =
+    post.readingTime ??
+    (post.content
+      ? calculateReadingTime(post.content)
+      : post.excerpt
+        ? calculateReadingTime(post.excerpt)
+        : null);
+
+  const readingTimeLabel =
+    readingMinutes !== null ? formatReadingTime(readingMinutes) : null;
+
   return (
     <Link
       href={`/posts/${post.slug}`}
-      aria-label={`Read ${post.title} by ${post.author.name}; ${post._count.comments} ${post._count.comments === 1 ? "comment" : "comments"}`}
+      aria-label={`Read ${post.title} by ${post.author.name}${
+        readingTimeLabel ? `, ${readingTimeLabel}` : ""
+      }; ${post._count.comments} ${
+        post._count.comments === 1 ? "comment" : "comments"
+      }`}
       className="group block rounded-xl outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-4"
     >
       <article className="flex gap-5 border-b border-border py-7 transition-colors group-hover:border-brand-500/60 sm:gap-8">
@@ -62,6 +80,12 @@ export function PostCard({ post }: PostCardProps) {
               >
                 {publishedDate}
               </time>
+              {readingTimeLabel && (
+                <>
+                  <span aria-hidden="true">·</span>
+                  <span>{readingTimeLabel}</span>
+                </>
+              )}
             </div>
           </div>
 

@@ -8,6 +8,7 @@ import { FeedSidebar } from "@/components/home/feed-sidebar";
 import { DiscoverySidebar } from "@/components/home/discovery-sidebar";
 import { POSTS_PER_PAGE } from "@/lib/constants";
 import { prisma } from "@/lib/prisma";
+import { calculateReadingTime } from "@/lib/reading-time";
 
 export const dynamic = "force-dynamic";
 
@@ -25,6 +26,7 @@ export default async function HomePage() {
         title: true,
         slug: true,
         excerpt: true,
+        content: true,
         coverImageUrl: true,
         publishedAt: true,
         author: {
@@ -45,6 +47,11 @@ export default async function HomePage() {
     }),
   ]);
 
+  const initialPosts = posts.map((post) => ({
+    ...post,
+    readingTime: calculateReadingTime(post.content),
+  }));
+
   return (
     <main className="mx-auto grid w-full max-w-[1440px] flex-1 grid-cols-1 gap-8 px-5 py-7 sm:px-8 lg:grid-cols-[180px_minmax(0,680px)] lg:gap-10 xl:grid-cols-[190px_minmax(0,680px)_280px] xl:gap-12">
       <FeedSidebar />
@@ -63,10 +70,10 @@ export default async function HomePage() {
           </Link>
         </div>
         <ScrollReveal className="mt-1">
-          {posts.length > 0 ? (
+          {initialPosts.length > 0 ? (
             <InfinitePostFeed
-              initialPosts={posts}
-              initialHasNextPage={posts.length < totalPosts}
+              initialPosts={initialPosts}
+              initialHasNextPage={initialPosts.length < totalPosts}
             />
           ) : (
             <EmptyState
