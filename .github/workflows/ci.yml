@@ -13,9 +13,29 @@ permissions:
 jobs:
   checks:
     runs-on: ubuntu-latest
+
+    services:
+      mongo:
+        image: mongo:7
+        ports:
+          - 27017:27017
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: blog
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd="pg_isready -U postgres -d blog"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+
     env:
-      DATABASE_URL: file:./dev.db
-      DIRECT_URL: postgresql://test:test@localhost:5432/blog?schema=public
+      DATABASE_URL: mongodb://127.0.0.1:27017/blog?directConnection=true&retryWrites=true&w=majority
+      DIRECT_URL: postgresql://postgres:postgres@127.0.0.1:5432/blog?schema=public
       NEXTAUTH_SECRET: playwright-test-secret-only
       NEXTAUTH_URL: http://localhost:3000
     steps:
@@ -44,6 +64,9 @@ jobs:
         run: npx prisma validate
 
       - name: Validate PostgreSQL production schema
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/blog?schema=public
+          DIRECT_URL: postgresql://postgres:postgres@127.0.0.1:5432/blog?schema=public
         run: npx prisma validate --schema=prisma/postgresql/schema.prisma
 
       - name: Build application
