@@ -7,16 +7,22 @@ import { POSTS_PER_PAGE } from "@/lib/constants";
 import { prisma } from "@/lib/prisma";
 
 type AuthorPageProps = {
-  params: {
+  params: Promise<{
     id: string;
-  };
+  }>;
 };
 
 export const dynamic = "force-dynamic";
 
 export default async function AuthorPage({ params }: AuthorPageProps) {
+  const { id } = await params;
+
+  if (!/^[0-9a-fA-F]{24}$/.test(id)) {
+    notFound();
+  }
+
   const author = await prisma.user.findUnique({
-    where: { id: params.id },
+    where: { id },
     select: {
       id: true,
       name: true,
@@ -41,15 +47,27 @@ export default async function AuthorPage({ params }: AuthorPageProps) {
       title: true,
       slug: true,
       excerpt: true,
+      coverImageUrl: true,
       publishedAt: true,
-      _count: { select: { comments: true } },
+      tags: {
+        select: { name: true, slug: true },
+      },
+      _count: { select: { comments: true, likes: true } },
     },
   });
 
   const authorPosts = posts.map((post) => ({
     ...post,
-    author: { name: author.name, imageUrl: author.imageUrl },
+    author: {
+      name: author.name,
+      imageUrl: author.imageUrl,
+    },
   }));
+
+  const joinedDate = new Intl.DateTimeFormat("en-US", {
+    month: "long",
+    year: "numeric",
+  }).format(author.createdAt);
 
   return (
     <main className="mx-auto w-full max-w-6xl flex-1 px-6 py-12 md:py-16">
@@ -60,41 +78,40 @@ export default async function AuthorPage({ params }: AuthorPageProps) {
         <span aria-hidden="true" className="mr-2">
           ←
         </span>
-        All stories
+        Back to stories
       </Link>
 
-      <header className="mt-10 flex flex-col gap-5 border-b border-border pb-8 sm:flex-row sm:items-center">
-        <Avatar name={author.name} imageUrl={author.imageUrl} size="large" />
-        <div>
-          <p className="text-sm font-semibold uppercase tracking-[0.16em] text-brand-600">
-            Author
-          </p>
-          <h1 className="mt-2 text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
-            {author.name}
-          </h1>
-          <p className="mt-2 text-sm text-muted">
-            Member since{" "}
-            {new Intl.DateTimeFormat("en", {
-              month: "long",
-              year: "numeric",
-            }).format(author.createdAt)}
-          </p>
+      <header className="mt-8 border-b border-border pb-8">
+        <div className="flex flex-col gap-6 sm:flex-row sm:items-center">
+          <Avatar name={author.name} imageUrl={author.imageUrl} size="large" />
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
+              {author.name}
+            </h1>
+            <p className="mt-2 text-sm text-muted">Joined {joinedDate}</p>
+          </div>
         </div>
       </header>
 
-      <section className="mt-10" aria-labelledby="author-posts-heading">
-        <h2
-          id="author-posts-heading"
-          className="mb-6 text-2xl font-bold tracking-tight text-foreground"
-        >
-          Published stories
-        </h2>
+      <section aria-labelledby="author-stories-heading" className="mt-10">
+        <div className="mb-6 flex items-center justify-between">
+          <h2
+            id="author-stories-heading"
+            className="text-xl font-bold tracking-tight text-foreground"
+          >
+            Stories by {author.name}
+          </h2>
+          <span className="text-sm text-muted">
+            {posts.length} {posts.length === 1 ? "story" : "stories"}
+          </span>
+        </div>
+
         {authorPosts.length > 0 ? (
           <PostList posts={authorPosts} />
         ) : (
           <EmptyState
             title="No published stories yet."
-            description={`${author.name} has not published a story yet. Check back soon.`}
+            description={`${author.name} hasn't published any stories yet.`}
           />
         )}
       </section>

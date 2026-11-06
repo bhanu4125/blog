@@ -15,7 +15,7 @@ export function PostList({ posts }: PostListProps) {
       initial="hidden"
       animate="visible"
       variants={staggerContainerVariants}
-      className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3"
+      className="flex flex-col"
     >
       {posts.map((post) => (
         <motion.div key={post.slug} role="listitem" variants={fadeInUpVariants}>

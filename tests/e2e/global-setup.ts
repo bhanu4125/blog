@@ -11,7 +11,7 @@ export default function globalSetup() {
     "index.js"
   );
 
-  execFileSync(process.execPath, [prismaCli, "migrate", "deploy"], {
+  execFileSync(process.execPath, [prismaCli, "db", "push"], {
     cwd: process.cwd(),
     env: { ...process.env, DATABASE_URL: databaseUrl },
     stdio: "inherit",

@@ -31,7 +31,7 @@ export async function GET(request: Request) {
   };
 
   try {
-    const [posts, total] = await prisma.$transaction([
+    const [posts, total] = await Promise.all([
       prisma.post.findMany({
         where,
         orderBy: [{ publishedAt: "desc" }, { createdAt: "desc" }],
@@ -51,7 +51,7 @@ export async function GET(request: Request) {
             select: { name: true, slug: true },
             orderBy: { name: "asc" },
           },
-          _count: { select: { comments: true } },
+          _count: { select: { comments: true, likes: true } },
         },
       }),
       prisma.post.count({ where }),
@@ -130,9 +130,9 @@ export async function POST(request: Request) {
         publishedAt: status === "published" ? new Date() : null,
         author: { connect: { id: session.user.id } },
         tags: {
-          connectOrCreate: normalizedTags.map(({ name, slug }) => ({
-            where: { slug },
-            create: { name, slug },
+          connectOrCreate: normalizedTags.map(({ name, slug: tagSlug }) => ({
+            where: { slug: tagSlug },
+            create: { name, slug: tagSlug },
           })),
         },
       },

@@ -61,31 +61,38 @@ export function Navbar() {
   return (
     <motion.header
       style={{ y, opacity }}
-      className="sticky top-0 z-50 border-b border-border bg-background/85 backdrop-blur-md"
+      className="sticky top-0 z-50 border-b border-border bg-background/95 backdrop-blur-md"
     >
       <nav
         aria-label="Main navigation"
-        className="mx-auto flex h-16 max-w-6xl items-center justify-between px-6"
+        className="mx-auto flex h-16 max-w-[1440px] items-center justify-between gap-4 px-5 sm:px-8"
       >
         <Link
           href="/"
-          className="rounded-md text-lg font-bold tracking-tight text-foreground outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2"
+          className="rounded-md text-xl font-black tracking-tight text-foreground outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2"
         >
-          Blog<span className="text-brand-600">.</span>
+          Blog<span className="text-brand-400">.</span>
         </Link>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-1 sm:gap-3">
           <Link
             href="/"
             aria-current="page"
-            className="rounded-lg px-3 py-2 text-sm font-medium text-muted outline-none transition-colors hover:text-foreground focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2"
+            className="hidden rounded-lg px-3 py-2 text-sm font-medium text-muted outline-none transition-colors hover:text-foreground focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2 sm:inline-flex"
           >
             Home
           </Link>
           <Link
             href="/tags"
-            className="rounded-lg px-3 py-2 text-sm font-medium text-muted outline-none transition-colors hover:text-foreground focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2"
+            className="hidden rounded-lg px-3 py-2 text-sm font-medium text-muted outline-none transition-colors hover:text-foreground focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2 sm:inline-flex"
           >
-            Tags
+            Explore
+          </Link>
+          <Link
+            href="/write"
+            className="hidden min-h-10 items-center gap-2 rounded-full border border-border px-4 text-sm font-semibold text-foreground outline-none transition-colors hover:border-brand-400 hover:text-brand-300 focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2 sm:inline-flex"
+          >
+            <span aria-hidden="true">↗</span>
+            Write
           </Link>
           {status === "authenticated" ? (
             <div className="relative" ref={userMenuRef}>
@@ -171,15 +178,15 @@ export function Navbar() {
             <div className="flex items-center gap-2">
               <Link
                 href="/login"
-                className="rounded-lg px-3 py-2 text-sm font-medium text-muted outline-none transition-colors hover:text-foreground focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2"
+                className="rounded-lg px-2 py-2 text-sm font-medium text-muted outline-none transition-colors hover:text-foreground focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2 sm:px-3"
               >
                 Sign in
               </Link>
               <Link
                 href="/register"
-                className="rounded-xl bg-brand-600 px-4 py-2.5 text-sm font-semibold text-white outline-none transition-colors hover:bg-brand-700 focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2"
+                className="rounded-full bg-brand-600 px-3 py-2 text-sm font-semibold text-white outline-none transition-colors hover:bg-brand-500 focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2 sm:px-4"
               >
-                Join
+                Get started
               </Link>
             </div>
           ) : (

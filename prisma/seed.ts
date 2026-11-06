@@ -16,41 +16,57 @@ async function main() {
   }
 
   const passwordHash = await hash(seedPassword, 12);
-  const author = await prisma.user.upsert({
+  let author = await prisma.user.findUnique({
     where: { email: "writer@example.com" },
-    update: { name: "Sample Writer" },
-    create: {
-      name: "Sample Writer",
-      email: "writer@example.com",
-      passwordHash,
-    },
   });
+  if (author) {
+    author = await prisma.user.update({
+      where: { email: "writer@example.com" },
+      data: { name: "Sample Writer" },
+    });
+  } else {
+    author = await prisma.user.create({
+      data: {
+        name: "Sample Writer",
+        email: "writer@example.com",
+        passwordHash,
+      },
+    });
+  }
 
-  const post = await prisma.post.upsert({
+  let post = await prisma.post.findUnique({
     where: { slug: "welcome-to-blog" },
-    update: {},
-    create: {
-      title: "Welcome to Blog",
-      slug: "welcome-to-blog",
-      excerpt: "A first story to welcome you to the community.",
-      content:
-        "# Welcome to Blog\n\nThis is a sample story. Share what you are learning, what you love, and what you want others to discover.",
-      status: "published",
-      publishedAt: new Date("2026-01-01T12:00:00.000Z"),
-      authorId: author.id,
-    },
   });
+  if (!post) {
+    post = await prisma.post.create({
+      data: {
+        title: "Welcome to Blog",
+        slug: "welcome-to-blog",
+        excerpt: "A first story to welcome you to the community.",
+        content:
+          "# Welcome to Blog\n\nThis is a sample story. Share what you are learning, what you love, and what you want others to discover.",
+        status: "published",
+        publishedAt: new Date("2026-01-01T12:00:00.000Z"),
+        authorId: author.id,
+      },
+    });
+  }
 
-  await prisma.comment.upsert({
-    where: { id: "seed-comment-welcome" },
-    update: {},
-    create: {
-      id: "seed-comment-welcome",
+  const existingComment = await prisma.comment.findFirst({
+    where: {
       content: "Looking forward to reading more stories!",
       postId: post.id,
-      authorId: author.id,
     },
   });
+  if (!existingComment) {
+    await prisma.comment.create({
+      data: {
+        content: "Looking forward to reading more stories!",
+        postId: post.id,
+        authorId: author.id,
+      },
+    });
+  }
 }
 
 main()

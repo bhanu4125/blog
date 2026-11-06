@@ -1,6 +1,7 @@
 # Blog — Stories Worth Sharing
 
-A modern, full-stack blogging platform built with **Next.js (App Router)**, **TypeScript**, **Tailwind CSS**, **Prisma ORM**, and **MongoDB**. Designed with a 3-column feed architecture, rich Markdown writing workspace, nested discussions, and reader engagement features.
+A blogging platform built with Next.js, TypeScript, Tailwind CSS, Prisma, and
+MongoDB.
 
 ---
 
@@ -89,69 +90,19 @@ A modern, full-stack blogging platform built with **Next.js (App Router)**, **Ty
 
 Before running the project locally, ensure you have:
 
-- **Node.js**: `v18.17.0` or later (`v20+` recommended)
-- **Package Manager**: `npm`
-- **MongoDB**: A running MongoDB instance configured as a **Replica Set** (required by Prisma for document relations and transactions).
-  - _Option A (Local):_ Local MongoDB running with `--replSet rs0`.
-  - _Option B (Cloud):_ A free shared cluster on [MongoDB Atlas](https://www.mongodb.com/atlas).
+- Node.js 18 or later
+- npm
+- MongoDB instance or replica set (e.g. MongoDB Atlas or local mongod)
 
 ---
 
-## 🚀 Getting Started
-
-### 1. Clone & Install Dependencies
+Copy `.env.example` to `.env`, configure your MongoDB `DATABASE_URL`, then install dependencies and push the database schema:
 
 ```bash
 git clone https://github.com/bhanu4125/blog.git
 cd blog
 npm ci
-```
-
-### 2. Configure Environment Variables
-
-Create a `.env` file in the project root:
-
-```bash
-cp .env.example .env
-```
-
-Update `.env` with your MongoDB connection string and application secret:
-
-```env
-# MongoDB Connection String (must include replicaSet configuration)
-DATABASE_URL="mongodb://127.0.0.1:27018/blog?replicaSet=rs0&directConnection=true"
-
-# NextAuth secret key (generate using `openssl rand -base64 32`)
-NEXTAUTH_SECRET="your-secure-random-32-character-secret"
-
-# Canonical URLs
-NEXTAUTH_URL="http://localhost:3000"
-NEXT_PUBLIC_SITE_URL="http://localhost:3000"
-```
-
-### 3. Synchronize Database Indexes
-
-Push the Prisma schema to your MongoDB database to create the collections and indexes:
-
-```bash
 npm run db:push
-```
-
-### 4. Seed Initial Data (Optional)
-
-Populate the database with a sample author (`writer@example.com`), story, and comments:
-
-```bash
-# On Windows (PowerShell)
-$env:SEED_USER_PASSWORD="YourPassword123"; npm run db:seed
-
-# On macOS / Linux
-SEED_USER_PASSWORD="YourPassword123" npm run db:seed
-```
-
-### 5. Run the Development Server
-
-```bash
 npm run dev
 ```
 
@@ -161,59 +112,27 @@ Open [http://localhost:3000](http://localhost:3000) in your browser.
 
 ## 📜 Available Scripts
 
-| Command                | Description                                                     |
-| ---------------------- | --------------------------------------------------------------- |
-| `npm run dev`          | Starts the Next.js development server with hot-reloading        |
-| `npm run build`        | Compiles an optimized production build with TypeScript checks   |
-| `npm start`            | Starts the production Next.js server                            |
-| `npm run lint`         | Runs ESLint to check for code quality and style violations      |
-| `npm run format`       | Automatically formats all codebase files using Prettier         |
-| `npm run format:check` | Validates formatting across the project                         |
-| `npm test`             | Executes unit tests with Vitest                                 |
-| `npm run test:e2e`     | Executes end-to-end browser user flows with Playwright          |
-| `npm run db:push`      | Synchronizes MongoDB collections and indexes with Prisma schema |
-| `npm run db:seed`      | Seeds the database with default sample data                     |
-| `npm run db:studio`    | Opens Prisma Studio to browse and manipulate MongoDB documents  |
+| Command            | Description                                |
+| ------------------ | ------------------------------------------ |
+| `npm run dev`      | Start the development server               |
+| `npm run build`    | Create a production build                  |
+| `npm run start`    | Start the production server                |
+| `npm run lint`     | Run ESLint                                 |
+| `npm test`         | Run utility unit tests                     |
+| `npm run db:push`  | Push Prisma schema to MongoDB              |
+| `npm run db:seed`  | Seed the database with initial sample data |
+| `npm run test:e2e` | Run the Playwright flow tests              |
 
 ---
 
-## 🧪 Testing & Quality Assurance
+- Next.js with App Router
+- TypeScript
+- Tailwind CSS
+- Prisma with MongoDB
+- NextAuth, Zod, React Markdown, and Framer Motion
 
-### Unit Tests
+## Development
 
-The project uses [Vitest](https://vitest.dev/) for blazing fast unit testing of business logic, time formatting, slugification, and tag normalization:
-
-```bash
-npm test
-```
-
-### End-to-End Tests
-
-[Playwright](https://playwright.dev/) tests the critical user journey: user registration, sign-in, story authoring, Markdown rendering, and publishing verification:
-
-```bash
-npm run test:e2e
-```
-
----
-
-## 🌐 Deployment (Vercel + MongoDB Atlas)
-
-1. Push your code to GitHub.
-2. Create a free M0 cluster on [MongoDB Atlas](https://www.mongodb.com/atlas) and retrieve your connection string:
-   ```text
-   mongodb+srv://<username>:<password>@cluster0.mongodb.net/blog?retryWrites=true&w=majority
-   ```
-3. Import the repository in [Vercel](https://vercel.com).
-4. Configure the environment variables in project settings:
-   - `DATABASE_URL`: Your MongoDB Atlas URI.
-   - `NEXTAUTH_SECRET`: A secure random secret.
-   - `NEXTAUTH_URL`: Your deployed Vercel domain (e.g. `https://your-blog.vercel.app`).
-   - `NEXT_PUBLIC_SITE_URL`: The same production domain for metadata.
-5. Deploy. Vercel automatically runs `prisma generate` and builds the optimized Next.js application.
-
----
-
-## 📄 License
-
-This project is open-source and available under the [MIT License](LICENSE).
+Run `npm run format:check`, `npm run lint`, `npm test`, and `npm run build` before
+submitting changes. Run `npm run test:e2e` for the register, login, and publish
+flow.

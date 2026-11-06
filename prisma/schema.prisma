@@ -3,12 +3,12 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "mongodb"
   url      = env("DATABASE_URL")
 }
 
 model User {
-  id           String     @id @default(cuid())
+  id           String     @id @default(auto()) @map("_id") @db.ObjectId
   name         String
   email        String     @unique
   passwordHash String
@@ -22,7 +22,7 @@ model User {
 }
 
 model Post {
-  id            String     @id @default(cuid())
+  id            String     @id @default(auto()) @map("_id") @db.ObjectId
   title         String
   slug          String     @unique
   content       String
@@ -30,10 +30,11 @@ model Post {
   coverImageUrl String?
   status        String     @default("draft")
   publishedAt   DateTime?
-  authorId      String
+  authorId      String     @db.ObjectId
   author        User       @relation(fields: [authorId], references: [id], onDelete: Cascade)
   comments      Comment[]
-  tags          Tag[]
+  tagIDs        String[]   @db.ObjectId
+  tags          Tag[]      @relation(fields: [tagIDs], references: [id])
   likes         Like[]
   bookmarks     Bookmark[]
   createdAt     DateTime   @default(now())
@@ -41,17 +42,18 @@ model Post {
 }
 
 model Tag {
-  id    String @id @default(cuid())
-  name  String
-  slug  String @unique
-  posts Post[]
+  id      String   @id @default(auto()) @map("_id") @db.ObjectId
+  name    String
+  slug    String   @unique
+  postIDs String[] @db.ObjectId
+  posts   Post[]   @relation(fields: [postIDs], references: [id])
 }
 
 model Like {
-  id        String   @id @default(cuid())
-  userId    String
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId    String   @db.ObjectId
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  postId    String
+  postId    String   @db.ObjectId
   post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
   createdAt DateTime @default(now())
 
@@ -60,10 +62,10 @@ model Like {
 }
 
 model Bookmark {
-  id        String   @id @default(cuid())
-  userId    String
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId    String   @db.ObjectId
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  postId    String
+  postId    String   @db.ObjectId
   post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
   createdAt DateTime @default(now())
 
@@ -72,14 +74,14 @@ model Bookmark {
 }
 
 model Comment {
-  id        String    @id @default(cuid())
+  id        String    @id @default(auto()) @map("_id") @db.ObjectId
   content   String
-  postId    String
+  postId    String    @db.ObjectId
   post      Post      @relation(fields: [postId], references: [id], onDelete: Cascade)
-  authorId  String
+  authorId  String    @db.ObjectId
   author    User      @relation(fields: [authorId], references: [id], onDelete: Cascade)
-  parentId  String?
-  parent    Comment?  @relation("CommentReplies", fields: [parentId], references: [id], onDelete: Cascade)
+  parentId  String?   @db.ObjectId
+  parent    Comment?  @relation("CommentReplies", fields: [parentId], references: [id], onDelete: NoAction, onUpdate: NoAction)
   replies   Comment[] @relation("CommentReplies")
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt

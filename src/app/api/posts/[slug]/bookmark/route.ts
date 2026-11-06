@@ -4,15 +4,12 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
 type BookmarkRouteContext = {
-  params: {
+  params: Promise<{
     slug: string;
-  };
+  }>;
 };
 
-export async function POST(
-  _request: Request,
-  { params }: BookmarkRouteContext
-) {
+export async function POST(_request: Request, context: BookmarkRouteContext) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) {
     return NextResponse.json(
@@ -21,10 +18,12 @@ export async function POST(
     );
   }
 
+  const { slug } = await context.params;
+
   try {
     const post = await prisma.post.findFirst({
       where: {
-        slug: params.slug,
+        slug,
         status: "published",
         publishedAt: { not: null },
       },
@@ -35,34 +34,31 @@ export async function POST(
       return NextResponse.json({ error: "Post not found." }, { status: 404 });
     }
 
-    const bookmarked = await prisma.$transaction(async (transaction) => {
-      const existingBookmark = await transaction.bookmark.findUnique({
-        where: {
-          userId_postId: {
-            userId: session.user.id,
-            postId: post.id,
-          },
-        },
-        select: { id: true },
-      });
-
-      if (existingBookmark) {
-        await transaction.bookmark.delete({
-          where: { id: existingBookmark.id },
-        });
-        return false;
-      }
-
-      await transaction.bookmark.create({
-        data: {
+    const existingBookmark = await prisma.bookmark.findUnique({
+      where: {
+        userId_postId: {
           userId: session.user.id,
           postId: post.id,
         },
-      });
-      return true;
+      },
+      select: { id: true },
     });
 
-    return NextResponse.json({ bookmarked });
+    if (existingBookmark) {
+      await prisma.bookmark.delete({
+        where: { id: existingBookmark.id },
+      });
+      return NextResponse.json({ bookmarked: false });
+    }
+
+    await prisma.bookmark.create({
+      data: {
+        userId: session.user.id,
+        postId: post.id,
+      },
+    });
+
+    return NextResponse.json({ bookmarked: true });
   } catch (error) {
     console.error("Post bookmark toggle failed:", error);
     return NextResponse.json(
