@@ -78,15 +78,8 @@ export function SearchBar() {
   const hasCurrentResults = resultQuery === normalizedQuery && results;
 
   return (
-    <section
-      aria-labelledby="search-heading"
-      className="mt-10 rounded-2xl border border-border bg-surface p-5 sm:p-6"
-    >
-      <label
-        id="search-heading"
-        htmlFor="post-search"
-        className="mb-2 block text-sm font-semibold text-foreground"
-      >
+    <section aria-labelledby="search-heading" className="mt-7">
+      <label id="search-heading" htmlFor="post-search" className="sr-only">
         Search stories
       </label>
       <Input
@@ -94,15 +87,16 @@ export function SearchBar() {
         type="search"
         value={query}
         onChange={(event) => setQuery(event.target.value)}
-        placeholder="Search by title, author, content, or tag"
+        placeholder="Search stories, writers, and topics"
         autoComplete="off"
         aria-describedby="search-hint"
+        className="rounded-full border-border bg-surface px-5 shadow-none"
       />
-      <p id="search-hint" className="mt-2 text-xs text-muted">
+      <p id="search-hint" className="sr-only">
         Enter at least 2 characters. Results update as you type.
       </p>
 
-      <div className="mt-6" aria-live="polite" aria-busy={isLoading}>
+      <div className="mt-5" aria-live="polite" aria-busy={isLoading}>
         {isLoading && (
           <p role="status" className="text-sm text-muted">
             Searching stories…

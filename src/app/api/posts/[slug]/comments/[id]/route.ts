@@ -5,19 +5,25 @@ import { prisma } from "@/lib/prisma";
 import { updateCommentSchema } from "@/lib/validations/comment";
 
 type CommentRouteContext = {
-  params: {
+  params: Promise<{
     slug: string;
     id: string;
-  };
+  }>;
 };
 
-export async function PATCH(request: Request, { params }: CommentRouteContext) {
+export async function PATCH(request: Request, context: CommentRouteContext) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) {
     return NextResponse.json(
       { error: "Authentication required." },
       { status: 401 }
     );
+  }
+
+  const { slug, id } = await context.params;
+
+  if (!/^[0-9a-fA-F]{24}$/.test(id)) {
+    return NextResponse.json({ error: "Comment not found." }, { status: 404 });
   }
 
   let payload: unknown;
@@ -43,9 +49,9 @@ export async function PATCH(request: Request, { params }: CommentRouteContext) {
   try {
     const existingComment = await prisma.comment.findFirst({
       where: {
-        id: params.id,
+        id,
         authorId: session.user.id,
-        post: { is: { slug: params.slug } },
+        post: { is: { slug } },
       },
       select: { id: true },
     });
@@ -82,10 +88,7 @@ export async function PATCH(request: Request, { params }: CommentRouteContext) {
   }
 }
 
-export async function DELETE(
-  _request: Request,
-  { params }: CommentRouteContext
-) {
+export async function DELETE(_request: Request, context: CommentRouteContext) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) {
     return NextResponse.json(
@@ -94,12 +97,18 @@ export async function DELETE(
     );
   }
 
+  const { slug, id } = await context.params;
+
+  if (!/^[0-9a-fA-F]{24}$/.test(id)) {
+    return NextResponse.json({ error: "Comment not found." }, { status: 404 });
+  }
+
   try {
     const result = await prisma.comment.deleteMany({
       where: {
-        id: params.id,
+        id,
         authorId: session.user.id,
-        post: { is: { slug: params.slug } },
+        post: { is: { slug } },
       },
     });
 

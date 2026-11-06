@@ -19,9 +19,9 @@ import { prisma } from "@/lib/prisma";
 import { calculateReadingTime } from "@/lib/reading-time";
 
 type PostPageProps = {
-  params: {
+  params: Promise<{
     slug: string;
-  };
+  }>;
 };
 
 export const dynamic = "force-dynamic";
@@ -29,9 +29,10 @@ export const dynamic = "force-dynamic";
 export async function generateMetadata({
   params,
 }: PostPageProps): Promise<Metadata> {
+  const { slug } = await params;
   const post = await prisma.post.findFirst({
     where: {
-      slug: params.slug,
+      slug,
       status: "published",
       publishedAt: { not: null },
     },
@@ -67,12 +68,12 @@ export async function generateMetadata({
     title: post.title,
     description,
     authors: [{ name: post.author.name }],
-    alternates: { canonical: `/posts/${params.slug}` },
+    alternates: { canonical: `/posts/${slug}` },
     openGraph: {
       type: "article",
       title: post.title,
       description,
-      url: `/posts/${params.slug}`,
+      url: `/posts/${slug}`,
       publishedTime: post.publishedAt?.toISOString(),
       authors: [post.author.name],
       images: [image],
@@ -87,10 +88,11 @@ export async function generateMetadata({
 }
 
 export default async function PostPage({ params }: PostPageProps) {
+  const { slug } = await params;
   const session = await getServerSession(authOptions);
   const post = await prisma.post.findFirst({
     where: {
-      slug: params.slug,
+      slug,
       status: "published",
       publishedAt: { not: null },
     },
@@ -148,7 +150,7 @@ export default async function PostPage({ params }: PostPageProps) {
     post.tags.length > 0
       ? prisma.post.findMany({
           where: {
-            slug: { not: params.slug },
+            slug: { not: slug },
             status: "published",
             publishedAt: { not: null },
             tags: { some: { slug: { in: post.tags.map((tag) => tag.slug) } } },
@@ -159,11 +161,15 @@ export default async function PostPage({ params }: PostPageProps) {
             title: true,
             slug: true,
             excerpt: true,
+            coverImageUrl: true,
             publishedAt: true,
             author: {
               select: { name: true, imageUrl: true },
             },
-            _count: { select: { comments: true } },
+            tags: {
+              select: { name: true, slug: true },
+            },
+            _count: { select: { comments: true, likes: true } },
           },
         })
       : Promise.resolve([]),
@@ -247,12 +253,12 @@ export default async function PostPage({ params }: PostPageProps) {
           </div>
           <div className="mt-6 flex flex-wrap items-center gap-3">
             <LikeButton
-              postSlug={params.slug}
+              postSlug={slug}
               initialCount={post._count.likes}
               initialIsLiked={Boolean(existingLike)}
             />
             <BookmarkButton
-              postSlug={params.slug}
+              postSlug={slug}
               initialIsBookmarked={Boolean(existingBookmark)}
             />
             <ShareButton title={post.title} />
@@ -279,7 +285,7 @@ export default async function PostPage({ params }: PostPageProps) {
             >
               Join the conversation
             </h2>
-            <CommentsSection postSlug={params.slug} />
+            <CommentsSection postSlug={slug} />
           </section>
         </ScrollReveal>
       </main>

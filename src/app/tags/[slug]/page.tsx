@@ -4,16 +4,18 @@ import { PostList } from "@/components/posts/post-list";
 import { prisma } from "@/lib/prisma";
 
 type TagPageProps = {
-  params: {
+  params: Promise<{
     slug: string;
-  };
+  }>;
 };
 
 export const dynamic = "force-dynamic";
 
 export default async function TagPage({ params }: TagPageProps) {
+  const { slug } = await params;
+
   const tag = await prisma.tag.findUnique({
-    where: { slug: params.slug },
+    where: { slug },
     select: {
       name: true,
       posts: {
@@ -27,11 +29,15 @@ export default async function TagPage({ params }: TagPageProps) {
           title: true,
           slug: true,
           excerpt: true,
+          coverImageUrl: true,
           publishedAt: true,
           author: {
             select: { name: true, imageUrl: true },
           },
-          _count: { select: { comments: true } },
+          tags: {
+            select: { name: true, slug: true },
+          },
+          _count: { select: { comments: true, likes: true } },
         },
       },
     },
@@ -52,14 +58,20 @@ export default async function TagPage({ params }: TagPageProps) {
         </span>
         All tags
       </Link>
-      <header className="mb-8 mt-10">
+
+      <header className="mb-10 mt-8 border-b border-border pb-8">
         <p className="text-sm font-semibold uppercase tracking-[0.16em] text-brand-600">
-          Stories tagged
+          Tag
         </p>
         <h1 className="mt-2 text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
-          {tag.name}
+          #{tag.name}
         </h1>
+        <p className="mt-3 text-muted">
+          {tag.posts.length} {tag.posts.length === 1 ? "story" : "stories"} with
+          this tag.
+        </p>
       </header>
+
       <PostList posts={tag.posts} />
     </main>
   );

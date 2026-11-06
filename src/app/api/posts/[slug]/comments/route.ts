@@ -5,16 +5,18 @@ import { prisma } from "@/lib/prisma";
 import { createCommentSchema } from "@/lib/validations/comment";
 
 type CommentsRouteContext = {
-  params: {
+  params: Promise<{
     slug: string;
-  };
+  }>;
 };
 
-export async function GET(_request: Request, { params }: CommentsRouteContext) {
+export async function GET(_request: Request, context: CommentsRouteContext) {
+  const { slug } = await context.params;
+
   try {
     const post = await prisma.post.findFirst({
       where: {
-        slug: params.slug,
+        slug,
         status: "published",
         publishedAt: { not: null },
       },
@@ -63,7 +65,7 @@ export async function GET(_request: Request, { params }: CommentsRouteContext) {
   }
 }
 
-export async function POST(request: Request, { params }: CommentsRouteContext) {
+export async function POST(request: Request, context: CommentsRouteContext) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) {
     return NextResponse.json(
@@ -71,6 +73,8 @@ export async function POST(request: Request, { params }: CommentsRouteContext) {
       { status: 401 }
     );
   }
+
+  const { slug } = await context.params;
 
   let payload: unknown;
   try {
@@ -95,7 +99,7 @@ export async function POST(request: Request, { params }: CommentsRouteContext) {
   try {
     const post = await prisma.post.findFirst({
       where: {
-        slug: params.slug,
+        slug,
         status: "published",
         publishedAt: { not: null },
       },
@@ -108,6 +112,13 @@ export async function POST(request: Request, { params }: CommentsRouteContext) {
 
     const parentId = parsed.data.parentId ?? null;
     if (parentId) {
+      if (!/^[0-9a-fA-F]{24}$/.test(parentId)) {
+        return NextResponse.json(
+          { error: "Replies must target a top-level comment on this post." },
+          { status: 400 }
+        );
+      }
+
       const parent = await prisma.comment.findFirst({
         where: { id: parentId, postId: post.id, parentId: null },
         select: { id: true },

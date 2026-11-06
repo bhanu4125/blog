@@ -7,16 +7,18 @@ import { normalizeTags } from "@/lib/tags";
 import { updatePostSchema } from "@/lib/validations/post";
 
 type PostRouteContext = {
-  params: {
+  params: Promise<{
     slug: string;
-  };
+  }>;
 };
 
-export async function GET(_request: Request, { params }: PostRouteContext) {
+export async function GET(_request: Request, context: PostRouteContext) {
+  const { slug } = await context.params;
+
   try {
     const post = await prisma.post.findFirst({
       where: {
-        slug: params.slug,
+        slug,
         status: "published",
         publishedAt: { not: null },
       },
@@ -54,7 +56,7 @@ export async function GET(_request: Request, { params }: PostRouteContext) {
   }
 }
 
-export async function PATCH(request: Request, { params }: PostRouteContext) {
+export async function PATCH(request: Request, context: PostRouteContext) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) {
     return NextResponse.json(
@@ -62,6 +64,8 @@ export async function PATCH(request: Request, { params }: PostRouteContext) {
       { status: 401 }
     );
   }
+
+  const { slug } = await context.params;
 
   let payload: unknown;
   try {
@@ -84,61 +88,56 @@ export async function PATCH(request: Request, { params }: PostRouteContext) {
   }
 
   try {
-    const existingPost = await findPostOwnedByUser(
-      params.slug,
-      session.user.id
-    );
+    const existingPost = await findPostOwnedByUser(slug, session.user.id);
 
     if (!existingPost) {
       return NextResponse.json({ error: "Post not found." }, { status: 404 });
     }
 
     const { status, tags, ...postFields } = parsed.data;
-    const post = await prisma.$transaction(async (transaction) => {
-      const tagRecords =
-        tags === undefined
-          ? undefined
-          : await Promise.all(
-              normalizeTags(tags).map(({ name, slug }) =>
-                transaction.tag.upsert({
-                  where: { slug },
-                  update: {},
-                  create: { name, slug },
-                  select: { id: true },
-                })
-              )
-            );
+    const tagRecords =
+      tags === undefined
+        ? undefined
+        : await Promise.all(
+            normalizeTags(tags).map(({ name, slug: tagSlug }) =>
+              prisma.tag.upsert({
+                where: { slug: tagSlug },
+                update: {},
+                create: { name, slug: tagSlug },
+                select: { id: true },
+              })
+            )
+          );
 
-      return transaction.post.update({
-        where: { id: existingPost.id },
-        data: {
-          ...postFields,
-          ...(tagRecords !== undefined && {
-            tags: { set: tagRecords.map(({ id }) => ({ id })) },
-          }),
-          ...(status !== undefined && {
-            status,
-            publishedAt:
-              status === "published"
-                ? existingPost.status === "published"
-                  ? (existingPost.publishedAt ?? new Date())
-                  : new Date()
-                : null,
-          }),
+    const post = await prisma.post.update({
+      where: { id: existingPost.id },
+      data: {
+        ...postFields,
+        ...(tagRecords !== undefined && {
+          tags: { set: tagRecords.map(({ id }) => ({ id })) },
+        }),
+        ...(status !== undefined && {
+          status,
+          publishedAt:
+            status === "published"
+              ? existingPost.status === "published"
+                ? (existingPost.publishedAt ?? new Date())
+                : new Date()
+              : null,
+        }),
+      },
+      select: {
+        id: true,
+        title: true,
+        content: true,
+        slug: true,
+        status: true,
+        updatedAt: true,
+        tags: {
+          select: { name: true, slug: true },
+          orderBy: { name: "asc" },
         },
-        select: {
-          id: true,
-          title: true,
-          content: true,
-          slug: true,
-          status: true,
-          updatedAt: true,
-          tags: {
-            select: { name: true, slug: true },
-            orderBy: { name: "asc" },
-          },
-        },
-      });
+      },
     });
 
     return NextResponse.json({ post });
@@ -151,7 +150,7 @@ export async function PATCH(request: Request, { params }: PostRouteContext) {
   }
 }
 
-export async function DELETE(_request: Request, { params }: PostRouteContext) {
+export async function DELETE(_request: Request, context: PostRouteContext) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) {
     return NextResponse.json(
@@ -160,17 +159,34 @@ export async function DELETE(_request: Request, { params }: PostRouteContext) {
     );
   }
 
+  const { slug } = await context.params;
+
   try {
-    const result = await prisma.post.deleteMany({
+    const existingPost = await prisma.post.findFirst({
       where: {
-        slug: params.slug,
+        slug,
         authorId: session.user.id,
       },
+      select: { id: true },
     });
 
-    if (result.count === 0) {
+    if (!existingPost) {
       return NextResponse.json({ error: "Post not found." }, { status: 404 });
     }
+
+    // Delete comment replies first, then comments to prevent P2014 cyclic relation violation
+    await prisma.comment.deleteMany({
+      where: { postId: existingPost.id, parentId: { not: null } },
+    });
+    await prisma.comment.deleteMany({
+      where: { postId: existingPost.id },
+    });
+
+    await prisma.post.delete({
+      where: {
+        id: existingPost.id,
+      },
+    });
 
     return NextResponse.json({ success: true });
   } catch (error) {
