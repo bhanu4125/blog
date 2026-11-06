@@ -40,6 +40,7 @@ export async function generateMetadata({
       title: true,
       excerpt: true,
       content: true,
+      coverImageUrl: true,
       publishedAt: true,
       author: { select: { name: true } },
     },
@@ -58,7 +59,7 @@ export async function generateMetadata({
       .slice(0, 160) ||
     siteConfig.description;
   const image = {
-    url: "/opengraph-image",
+    url: post.coverImageUrl || "/opengraph-image",
     width: 1200,
     height: 630,
     alt: post.title,
@@ -100,6 +101,7 @@ export default async function PostPage({ params }: PostPageProps) {
       id: true,
       title: true,
       content: true,
+      coverImageUrl: true,
       publishedAt: true,
       author: {
         select: { id: true, name: true, imageUrl: true },
@@ -242,6 +244,18 @@ export default async function PostPage({ params }: PostPageProps) {
               </ul>
             )}
           </header>
+
+          {post.coverImageUrl && (
+            <figure className="my-8 overflow-hidden rounded-2xl border border-border bg-surface">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={post.coverImageUrl}
+                alt={post.title}
+                className="max-h-[500px] w-full object-cover"
+                loading="eager"
+              />
+            </figure>
+          )}
 
           <div className="markdown-content break-words py-8 text-base leading-8 text-foreground">
             <ReactMarkdown
