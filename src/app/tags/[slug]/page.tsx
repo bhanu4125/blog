@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { PostList } from "@/components/posts/post-list";
 import { prisma } from "@/lib/prisma";
+import { calculateReadingTime } from "@/lib/reading-time";
 
 type TagPageProps = {
   params: Promise<{
@@ -29,6 +30,7 @@ export default async function TagPage({ params }: TagPageProps) {
           title: true,
           slug: true,
           excerpt: true,
+          content: true,
           coverImageUrl: true,
           publishedAt: true,
           author: {
@@ -46,6 +48,11 @@ export default async function TagPage({ params }: TagPageProps) {
   if (!tag || tag.posts.length === 0) {
     notFound();
   }
+
+  const posts = tag.posts.map((post) => ({
+    ...post,
+    readingTime: calculateReadingTime(post.content),
+  }));
 
   return (
     <main className="mx-auto w-full max-w-6xl flex-1 px-6 py-12 md:py-16">
@@ -72,7 +79,7 @@ export default async function TagPage({ params }: TagPageProps) {
         </p>
       </header>
 
-      <PostList posts={tag.posts} />
+      <PostList posts={posts} />
     </main>
   );
 }
