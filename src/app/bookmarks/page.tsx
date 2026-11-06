@@ -1,8 +1,5 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
-import { ScrollReveal } from "@/components/animation/scroll-reveal";
-import { PostList } from "@/components/posts/post-list";
-import { EmptyState } from "@/components/ui/empty-state";
+import { BookmarksList } from "@/components/posts/bookmarks-list";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { getServerSession } from "next-auth";
@@ -48,31 +45,17 @@ export default async function BookmarksPage() {
   return (
     <main className="mx-auto w-full max-w-6xl flex-1 px-6 py-10 md:py-14">
       <header className="mb-8">
-        <p className="text-sm font-semibold uppercase tracking-[0.16em] text-brand-600">
+        <p className="text-sm font-semibold uppercase tracking-[0.16em] text-brand-600 dark:text-brand-400">
           Your reading list
         </p>
-        <h1 className="mt-2 text-3xl font-bold tracking-tight text-foreground">
+        <h1 className="mt-2 text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
           Saved stories
         </h1>
+        <p className="mt-2 text-sm text-muted">
+          Stories you have saved for thoughtful reading later.
+        </p>
       </header>
-      {posts.length > 0 ? (
-        <ScrollReveal>
-          <PostList posts={posts} />
-        </ScrollReveal>
-      ) : (
-        <EmptyState
-          title="No saved stories yet."
-          description="Bookmark a story to keep it close for later."
-          action={
-            <Link
-              href="/"
-              className="inline-flex min-h-11 items-center justify-center rounded-xl bg-brand-600 px-5 py-2.5 text-sm font-semibold text-white outline-none transition-colors hover:bg-brand-700 focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2"
-            >
-              Explore stories
-            </Link>
-          }
-        />
-      )}
+      <BookmarksList initialPosts={posts} />
     </main>
   );
 }
