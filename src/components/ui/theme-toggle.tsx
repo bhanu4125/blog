@@ -34,7 +34,8 @@ export function ThemeToggle() {
     }, THEME_TRANSITION_DURATION);
   }
 
-  const isDark = resolvedTheme === "dark";
+  const isDark = mounted && resolvedTheme === "dark";
+  const icon = mounted ? (isDark ? "☀" : "☾") : "◐";
 
   return (
     <button
@@ -49,7 +50,7 @@ export function ThemeToggle() {
       title={mounted ? `Switch to ${isDark ? "light" : "dark"} theme` : "Theme"}
       className="inline-flex size-10 items-center justify-center rounded-xl border border-border bg-background text-lg text-foreground outline-none transition-colors hover:bg-surface focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2 disabled:cursor-wait"
     >
-      <span aria-hidden="true">{isDark ? "☀" : "☾"}</span>
+      <span aria-hidden="true">{icon}</span>
     </button>
   );
 }

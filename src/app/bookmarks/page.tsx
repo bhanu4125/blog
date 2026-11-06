@@ -30,11 +30,15 @@ export default async function BookmarksPage() {
           title: true,
           slug: true,
           excerpt: true,
+          coverImageUrl: true,
           publishedAt: true,
           author: {
             select: { name: true, imageUrl: true },
           },
-          _count: { select: { comments: true } },
+          tags: {
+            select: { name: true, slug: true },
+          },
+          _count: { select: { comments: true, likes: true } },
         },
       },
     },

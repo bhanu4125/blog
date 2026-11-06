@@ -5,21 +5,22 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
 type EditPostPageProps = {
-  params: {
+  params: Promise<{
     slug: string;
-  };
+  }>;
 };
 
 export const dynamic = "force-dynamic";
 
 export default async function EditPostPage({ params }: EditPostPageProps) {
+  const { slug } = await params;
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) {
     redirect("/login");
   }
 
   const post = await prisma.post.findFirst({
-    where: { slug: params.slug, authorId: session.user.id },
+    where: { slug, authorId: session.user.id },
     select: {
       slug: true,
       title: true,
@@ -49,15 +50,15 @@ export default async function EditPostPage({ params }: EditPostPageProps) {
             Edit your story
           </h1>
         </div>
-        <p className="text-sm text-muted">
-          Update your story and save your changes when you are ready.
-        </p>
       </header>
 
       <MarkdownWorkspace
         initialPost={{
-          ...post,
+          slug: post.slug,
+          title: post.title,
+          content: post.content,
           status: post.status,
+          coverImageUrl: post.coverImageUrl,
           tags: post.tags.map((tag) => tag.name),
         }}
       />

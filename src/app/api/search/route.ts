@@ -24,16 +24,20 @@ export async function GET(request: Request) {
     status: "published",
     publishedAt: { not: null },
     OR: [
-      { title: { contains: q } },
-      { excerpt: { contains: q } },
-      { content: { contains: q } },
-      { author: { name: { contains: q } } },
-      { tags: { some: { name: { contains: q } } } },
+      { title: { contains: q, mode: "insensitive" as const } },
+      { excerpt: { contains: q, mode: "insensitive" as const } },
+      { content: { contains: q, mode: "insensitive" as const } },
+      {
+        author: { is: { name: { contains: q, mode: "insensitive" as const } } },
+      },
+      {
+        tags: { some: { name: { contains: q, mode: "insensitive" as const } } },
+      },
     ],
   };
 
   try {
-    const [posts, total] = await prisma.$transaction([
+    const [posts, total] = await Promise.all([
       prisma.post.findMany({
         where,
         orderBy: [{ publishedAt: "desc" }, { createdAt: "desc" }],
@@ -53,7 +57,7 @@ export async function GET(request: Request) {
             select: { name: true, slug: true },
             orderBy: { name: "asc" },
           },
-          _count: { select: { comments: true } },
+          _count: { select: { comments: true, likes: true } },
         },
       }),
       prisma.post.count({ where }),
