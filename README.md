@@ -1,90 +1,219 @@
-# Blog
+# Blog — Stories Worth Sharing
 
-A blogging platform built with Next.js 14, TypeScript, Tailwind CSS, Prisma, and
-PostgreSQL in production. Local development uses SQLite.
+A modern, full-stack blogging platform built with **Next.js (App Router)**, **TypeScript**, **Tailwind CSS**, **Prisma ORM**, and **MongoDB**. Designed with a 3-column feed architecture, rich Markdown writing workspace, nested discussions, and reader engagement features.
 
-## Product preview
+---
+
+## 📸 Product Preview
 
 ![A quick tour of the Blog home feed, a published story, and its comments](./public/demo.gif)
 
-### Home feed
+### Home Feed & Discovery
 
 ![Blog home page showing the story feed and search](./public/screenshots/home.png)
 
-### Reading experience
+### Reading & Discussion Experience
 
 ![Published story page with Markdown content and reader actions](./public/screenshots/story.png)
 
-## Prerequisites
+---
 
-- Node.js 18 or later
-- npm
+## ✨ Features
 
-## Getting started
+- **3-Column Medium-style Layout:** Left navigation sidebar, center infinite-scroll feed with category tabs, and right-hand discovery panel with trending tags.
+- **Rich Markdown Workspace:** Live split-pane writing environment with syntax highlighting (`rehype-highlight`), GFM support (`remark-gfm`), word counting, and local draft autosave.
+- **Nested Comments & Discussions:** Multi-level comment and reply threads with optimistic UI updates.
+- **Engagement System:** One-click story liking with floating particle animations and a personal reading list (bookmarks).
+- **Instant Search:** Debounced full-text search across story titles, excerpts, content, tags, and authors with case-insensitive matching.
+- **Reading Comfort:** Estimated read time calculations, top navigation progress bar, and system-aware dark/light theme switching.
+- **Author Profiles & Story Dashboard:** Dedicated author pages, story draft/publish state management, and profile customization.
+- **Robust Security & Data Integrity:** Bcrypt password hashing, session-based JWT authentication via NextAuth.js, and Zod runtime schema validation.
 
-Copy `.env.example` to `.env`, then install dependencies and start the development
-server:
+---
+
+## 🛠️ Tech Stack
+
+| Category           | Technology                                                                                            |
+| ------------------ | ----------------------------------------------------------------------------------------------------- |
+| **Framework**      | [Next.js 16](https://nextjs.org/) (App Router, Server Components & Route Handlers)                    |
+| **Language**       | [TypeScript 5](https://www.typescriptlang.org/) (Strict Mode)                                         |
+| **Styling**        | [Tailwind CSS 3](https://tailwindcss.com/) & [Framer Motion](https://www.framer.com/motion/)          |
+| **Database & ORM** | [MongoDB](https://www.mongodb.com/) via [Prisma 6](https://www.prisma.io/)                            |
+| **Authentication** | [NextAuth.js 4](https://next-auth.js.org/) (Credentials Provider, JWT Strategy)                       |
+| **Validation**     | [Zod 3](https://zod.dev/)                                                                             |
+| **Markdown**       | [React Markdown](https://github.com/remarkjs/react-markdown), `rehype-highlight`, `remark-gfm`        |
+| **Testing**        | [Vitest](https://vitest.dev/) (Unit/Integration) & [Playwright](https://playwright.dev/) (End-to-End) |
+| **Code Quality**   | ESLint, Prettier, Husky, lint-staged                                                                  |
+
+---
+
+## 📁 Project Structure
+
+```text
+├── prisma/
+│   ├── schema.prisma       # Prisma schema configured for MongoDB
+│   └── seed.ts             # Database seeding script for sample authors and stories
+├── public/
+│   ├── demo.gif            # Product demo recording
+│   └── screenshots/        # Application UI screenshots
+├── src/
+│   ├── app/                # Next.js App Router (pages and API endpoints)
+│   │   ├── api/            # REST API endpoints (posts, comments, likes, search, profile)
+│   │   ├── authors/[id]/   # Author profile and stories view
+│   │   ├── bookmarks/      # Saved reading list page
+│   │   ├── dashboard/      # Writer's workspace & story management
+│   │   ├── posts/[slug]/   # Individual story reading experience
+│   │   ├── tags/           # Tag exploration & tag detail pages
+│   │   ├── write/          # Markdown story creator and editor
+│   │   └── page.tsx        # Homepage feed & discovery
+│   ├── components/         # Reusable React components
+│   │   ├── animation/      # Framer Motion transitions & scroll reveal
+│   │   ├── comments/       # Comment list, forms, and nested replies
+│   │   ├── editor/         # Markdown workspace, toolbar, and preview
+│   │   ├── home/           # FeedSidebar, DiscoverySidebar, and HeroSection
+│   │   ├── layout/         # Navbar, Footer, and Theme providers
+│   │   ├── posts/          # Post cards, feeds, like & bookmark buttons
+│   │   └── ui/             # Core accessible UI primitives
+│   ├── lib/                # Shared utilities, validations, and database client
+│   │   ├── validations/    # Zod validation schemas (auth, post, comment, profile)
+│   │   ├── auth.ts         # NextAuth configuration
+│   │   └── prisma.ts       # Singleton PrismaClient instance
+│   └── types/              # TypeScript declarations and NextAuth augmentations
+└── tests/                  # End-to-end tests
+    └── e2e/                # Playwright flow specifications and global setup
+```
+
+---
+
+## 📋 Prerequisites
+
+Before running the project locally, ensure you have:
+
+- **Node.js**: `v18.17.0` or later (`v20+` recommended)
+- **Package Manager**: `npm`
+- **MongoDB**: A running MongoDB instance configured as a **Replica Set** (required by Prisma for document relations and transactions).
+  - _Option A (Local):_ Local MongoDB running with `--replSet rs0`.
+  - _Option B (Cloud):_ A free shared cluster on [MongoDB Atlas](https://www.mongodb.com/atlas).
+
+---
+
+## 🚀 Getting Started
+
+### 1. Clone & Install Dependencies
 
 ```bash
+git clone https://github.com/bhanu4125/blog.git
+cd blog
 npm ci
-npx prisma migrate dev
+```
+
+### 2. Configure Environment Variables
+
+Create a `.env` file in the project root:
+
+```bash
+cp .env.example .env
+```
+
+Update `.env` with your MongoDB connection string and application secret:
+
+```env
+# MongoDB Connection String (must include replicaSet configuration)
+DATABASE_URL="mongodb://127.0.0.1:27018/blog?replicaSet=rs0&directConnection=true"
+
+# NextAuth secret key (generate using `openssl rand -base64 32`)
+NEXTAUTH_SECRET="your-secure-random-32-character-secret"
+
+# Canonical URLs
+NEXTAUTH_URL="http://localhost:3000"
+NEXT_PUBLIC_SITE_URL="http://localhost:3000"
+```
+
+### 3. Synchronize Database Indexes
+
+Push the Prisma schema to your MongoDB database to create the collections and indexes:
+
+```bash
+npm run db:push
+```
+
+### 4. Seed Initial Data (Optional)
+
+Populate the database with a sample author (`writer@example.com`), story, and comments:
+
+```bash
+# On Windows (PowerShell)
+$env:SEED_USER_PASSWORD="YourPassword123"; npm run db:seed
+
+# On macOS / Linux
+SEED_USER_PASSWORD="YourPassword123" npm run db:seed
+```
+
+### 5. Run the Development Server
+
+```bash
 npm run dev
 ```
 
 Open [http://localhost:3000](http://localhost:3000) in your browser.
 
-## Available scripts
+---
 
-| Command                | Description                                                            |
-| ---------------------- | ---------------------------------------------------------------------- |
-| `npm run dev`          | Start the development server                                           |
-| `npm run build`        | Create a production build                                              |
-| `npm run vercel-build` | Generate the PostgreSQL client, apply migrations, and build for Vercel |
-| `npm run start`        | Start the production server                                            |
-| `npm run lint`         | Run ESLint                                                             |
-| `npm test`             | Run utility unit tests                                                 |
-| `npm run test:e2e`     | Run the Playwright flow tests                                          |
+## 📜 Available Scripts
 
-## Tech stack
+| Command                | Description                                                     |
+| ---------------------- | --------------------------------------------------------------- |
+| `npm run dev`          | Starts the Next.js development server with hot-reloading        |
+| `npm run build`        | Compiles an optimized production build with TypeScript checks   |
+| `npm start`            | Starts the production Next.js server                            |
+| `npm run lint`         | Runs ESLint to check for code quality and style violations      |
+| `npm run format`       | Automatically formats all codebase files using Prettier         |
+| `npm run format:check` | Validates formatting across the project                         |
+| `npm test`             | Executes unit tests with Vitest                                 |
+| `npm run test:e2e`     | Executes end-to-end browser user flows with Playwright          |
+| `npm run db:push`      | Synchronizes MongoDB collections and indexes with Prisma schema |
+| `npm run db:seed`      | Seeds the database with default sample data                     |
+| `npm run db:studio`    | Opens Prisma Studio to browse and manipulate MongoDB documents  |
 
-- Next.js 14 with the App Router
-- TypeScript
-- Tailwind CSS
-- Prisma (SQLite locally, PostgreSQL in production)
-- NextAuth, Zod, React Markdown, and Framer Motion
+---
 
-## Project structure
+## 🧪 Testing & Quality Assurance
 
-Application routes and global styles are in `src/app/`. Shared components are in
-`src/components/`, and Prisma schemas and migrations are in `prisma/`.
+### Unit Tests
 
-## Vercel deployment
+The project uses [Vitest](https://vitest.dev/) for blazing fast unit testing of business logic, time formatting, slugification, and tag normalization:
 
-Import the repository into Vercel and configure these variables for each
-environment:
+```bash
+npm test
+```
 
-| Variable               | Value                                                          |
-| ---------------------- | -------------------------------------------------------------- |
-| `DATABASE_URL`         | PostgreSQL pooled connection string for application queries    |
-| `DIRECT_URL`           | Direct, non-pooled PostgreSQL connection string for migrations |
-| `NEXTAUTH_SECRET`      | A unique, securely generated secret                            |
-| `NEXTAUTH_URL`         | The canonical deployed site URL, including `https://`          |
-| `NEXT_PUBLIC_SITE_URL` | The same canonical site URL, used for SEO metadata             |
+### End-to-End Tests
 
-`vercel.json` selects the `vercel-build` command. It generates Prisma Client from
-the PostgreSQL schema, applies the PostgreSQL migrations, and builds the Next.js
-application. Use a separate database for Preview deployments so preview
-migrations cannot modify production data.
+[Playwright](https://playwright.dev/) tests the critical user journey: user registration, sign-in, story authoring, Markdown rendering, and publishing verification:
 
-The SQLite schema and database remain the default for local development. The
-PostgreSQL production schema and its independent migration history live in
-`prisma/postgresql/`.
+```bash
+npm run test:e2e
+```
 
-## Development
+---
 
-Run `npm run format:check`, `npm run lint`, `npm test`, and `npm run build` before
-submitting changes. Run `npm run test:e2e` for the register, login, and publish
-flow.
+## 🌐 Deployment (Vercel + MongoDB Atlas)
 
-GitHub Actions runs formatting, lint, unit tests, Prisma validation, production
-builds, and Playwright end-to-end tests on pushes to `main`.
+1. Push your code to GitHub.
+2. Create a free M0 cluster on [MongoDB Atlas](https://www.mongodb.com/atlas) and retrieve your connection string:
+   ```text
+   mongodb+srv://<username>:<password>@cluster0.mongodb.net/blog?retryWrites=true&w=majority
+   ```
+3. Import the repository in [Vercel](https://vercel.com).
+4. Configure the environment variables in project settings:
+   - `DATABASE_URL`: Your MongoDB Atlas URI.
+   - `NEXTAUTH_SECRET`: A secure random secret.
+   - `NEXTAUTH_URL`: Your deployed Vercel domain (e.g. `https://your-blog.vercel.app`).
+   - `NEXT_PUBLIC_SITE_URL`: The same production domain for metadata.
+5. Deploy. Vercel automatically runs `prisma generate` and builds the optimized Next.js application.
+
+---
+
+## 📄 License
+
+This project is open-source and available under the [MIT License](LICENSE).
