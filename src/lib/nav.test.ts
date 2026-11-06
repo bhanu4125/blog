@@ -20,4 +20,11 @@ describe("isNavActive", () => {
     expect(isNavActive("/write/my-post-slug", "/write")).toBe(true);
     expect(isNavActive("/bookmarks", "/write")).toBe(false);
   });
+
+  it("handles paths with search query parameters and hashes", () => {
+    expect(isNavActive("/search?q=nextjs", "/search")).toBe(true);
+    expect(isNavActive("/tags?page=2#top", "/tags")).toBe(true);
+    expect(isNavActive("/tags/news?sort=recent", "/tags")).toBe(true);
+    expect(isNavActive("/?ref=welcome", "/")).toBe(true);
+  });
 });
