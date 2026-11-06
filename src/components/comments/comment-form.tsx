@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { useRef, useState, type FormEvent, type KeyboardEvent } from "react";
 import Link from "next/link";
 import { useSession } from "next-auth/react";
 import { Button } from "@/components/ui/button";
@@ -35,6 +35,7 @@ export function CommentForm({
 }: CommentFormProps) {
   const [content, setContent] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const formRef = useRef<HTMLFormElement>(null);
   const { data: session, status } = useSession();
   const { addToast } = useToast();
 
@@ -43,6 +44,14 @@ export function CommentForm({
     const trimmedContent = content.trim();
     if (!trimmedContent) {
       addToast("Write a comment before posting.", "error");
+      return;
+    }
+
+    if (trimmedContent.length > COMMENT_MAX_LENGTH) {
+      addToast(
+        `Comments must be ${COMMENT_MAX_LENGTH.toLocaleString()} characters or fewer.`,
+        "error"
+      );
       return;
     }
 
@@ -98,6 +107,15 @@ export function CommentForm({
     }
   }
 
+  function handleKeyDown(event: KeyboardEvent<HTMLTextAreaElement>) {
+    if ((event.metaKey || event.ctrlKey) && event.key === "Enter") {
+      event.preventDefault();
+      if (!isSubmitting && content.trim()) {
+        formRef.current?.requestSubmit();
+      }
+    }
+  }
+
   if (status === "loading") {
     return (
       <p className="text-sm text-muted" role="status">
@@ -111,7 +129,7 @@ export function CommentForm({
       <p className="text-sm text-muted">
         <Link
           href={`/login?callbackUrl=${encodeURIComponent(`/posts/${postSlug}#comments`)}`}
-          className="font-semibold text-brand-600 underline-offset-4 hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-600"
+          className="font-semibold text-brand-600 underline-offset-4 hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-600 dark:text-brand-400"
         >
           Sign in
         </Link>{" "}
@@ -120,8 +138,12 @@ export function CommentForm({
     );
   }
 
+  const remaining = COMMENT_MAX_LENGTH - content.length;
+  const isNearLimit = remaining <= 200;
+  const isOverLimit = remaining < 0;
+
   return (
-    <form className="space-y-3" onSubmit={handleSubmit}>
+    <form ref={formRef} className="space-y-3" onSubmit={handleSubmit}>
       <div className="flex items-center justify-between gap-3">
         <label
           htmlFor="comment-content"
@@ -144,17 +166,41 @@ export function CommentForm({
         name="content"
         value={content}
         onChange={(event) => setContent(event.currentTarget.value)}
+        onKeyDown={handleKeyDown}
         placeholder="Share a thoughtful response…"
         rows={4}
         maxLength={COMMENT_MAX_LENGTH}
         required
-        aria-describedby="comment-length"
+        aria-describedby="comment-hint"
+        className="transition-colors focus:border-brand-500"
       />
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <p id="comment-length" className="text-xs text-muted">
-          {content.length}/{COMMENT_MAX_LENGTH} characters
+        <p
+          id="comment-hint"
+          className={`text-xs ${
+            isOverLimit
+              ? "font-semibold text-rose-500"
+              : isNearLimit
+                ? "font-medium text-amber-500 dark:text-amber-400"
+                : "text-muted"
+          }`}
+        >
+          <span>
+            {content.length}/{COMMENT_MAX_LENGTH} characters
+          </span>
+          <span className="hidden sm:inline">
+            {" "}
+            · Press{" "}
+            <kbd className="rounded border border-border bg-surface px-1.5 py-0.5 font-mono text-[10px] text-foreground">
+              ⌘/Ctrl + Enter
+            </kbd>{" "}
+            to post
+          </span>
         </p>
-        <Button type="submit" disabled={isSubmitting || !content.trim()}>
+        <Button
+          type="submit"
+          disabled={isSubmitting || !content.trim() || isOverLimit}
+        >
           {isSubmitting
             ? "Posting…"
             : parentComment
